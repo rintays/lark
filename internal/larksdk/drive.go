@@ -121,6 +121,98 @@ func (c *Client) GetDriveFileMetadata(ctx context.Context, token string, req Get
 	return mapDriveFile(resp.Data.File), nil
 }
 
+type DrivePermissionPublic struct {
+	ExternalAccess  bool   `json:"external_access"`
+	SecurityEntity  string `json:"security_entity"`
+	CommentEntity   string `json:"comment_entity"`
+	ShareEntity     string `json:"share_entity"`
+	LinkShareEntity string `json:"link_share_entity"`
+	InviteExternal  bool   `json:"invite_external"`
+	LockSwitch      bool   `json:"lock_switch"`
+}
+
+type UpdateDrivePermissionPublicRequest struct {
+	ExternalAccess  *bool  `json:"external_access,omitempty"`
+	SecurityEntity  string `json:"security_entity,omitempty"`
+	CommentEntity   string `json:"comment_entity,omitempty"`
+	ShareEntity     string `json:"share_entity,omitempty"`
+	LinkShareEntity string `json:"link_share_entity,omitempty"`
+	InviteExternal  *bool  `json:"invite_external,omitempty"`
+}
+
+type updateDrivePermissionPublicResponse struct {
+	*larkcore.ApiResp `json:"-"`
+	larkcore.CodeError
+	Data *updateDrivePermissionPublicResponseData `json:"data"`
+}
+
+type updateDrivePermissionPublicResponseData struct {
+	Permission DrivePermissionPublic `json:"permission_public"`
+}
+
+func (r *updateDrivePermissionPublicResponse) Success() bool {
+	return r.Code == 0
+}
+
+func (c *Client) UpdateDrivePermissionPublic(ctx context.Context, token, fileToken, fileType string, req UpdateDrivePermissionPublicRequest) (DrivePermissionPublic, error) {
+	if !c.available() || c.coreConfig == nil {
+		return DrivePermissionPublic{}, ErrUnavailable
+	}
+	if fileToken == "" {
+		return DrivePermissionPublic{}, fmt.Errorf("file token is required")
+	}
+	if fileType == "" {
+		return DrivePermissionPublic{}, fmt.Errorf("file type is required")
+	}
+	if !hasDrivePermissionPublicUpdate(req) {
+		return DrivePermissionPublic{}, fmt.Errorf("permission update requires at least one field")
+	}
+	tenantToken := c.tenantToken(token)
+	if tenantToken == "" {
+		return DrivePermissionPublic{}, errors.New("tenant access token is required")
+	}
+
+	apiReq := &larkcore.ApiReq{
+		ApiPath:                   "/open-apis/drive/v1/permissions/:file_token/public",
+		HttpMethod:                http.MethodPatch,
+		PathParams:                larkcore.PathParams{},
+		QueryParams:               larkcore.QueryParams{},
+		Body:                      req,
+		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant, larkcore.AccessTokenTypeUser},
+	}
+	apiReq.PathParams.Set("file_token", fileToken)
+	apiReq.QueryParams.Set("type", fileType)
+
+	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
+	if err != nil {
+		return DrivePermissionPublic{}, err
+	}
+	if apiResp == nil {
+		return DrivePermissionPublic{}, errors.New("update drive permission failed: empty response")
+	}
+	resp := &updateDrivePermissionPublicResponse{ApiResp: apiResp}
+	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
+		return DrivePermissionPublic{}, err
+	}
+	if !resp.Success() {
+		return DrivePermissionPublic{}, fmt.Errorf("update drive permission failed: %s", resp.Msg)
+	}
+	if resp.Data == nil {
+		return DrivePermissionPublic{}, nil
+	}
+	return resp.Data.Permission, nil
+}
+
+func hasDrivePermissionPublicUpdate(req UpdateDrivePermissionPublicRequest) bool {
+	if req.ExternalAccess != nil || req.InviteExternal != nil {
+		return true
+	}
+	if req.SecurityEntity != "" || req.CommentEntity != "" || req.ShareEntity != "" || req.LinkShareEntity != "" {
+		return true
+	}
+	return false
+}
+
 type uploadDriveFileResponse struct {
 	Code int    `json:"code"`
 	Msg  string `json:"msg"`

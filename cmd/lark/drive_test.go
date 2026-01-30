@@ -113,6 +113,11 @@ func TestDriveSearchCommand(t *testing.T) {
 		Printer: output.Printer{Writer: &buf},
 		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
 
 	cmd := newDriveCmd(state)
 	cmd.SetArgs([]string{"search", "--query", "budget", "--limit", "2"})
@@ -256,6 +261,7 @@ func TestDriveShareCommand(t *testing.T) {
 		if payload["external_access"] != true {
 			t.Fatalf("unexpected external_access: %+v", payload)
 		}
+		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"code": 0,
 			"msg":  "ok",
@@ -280,8 +286,12 @@ func TestDriveShareCommand(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
 
 	cmd := newDriveCmd(state)
 	cmd.SetArgs([]string{"share", "f1", "--type", "docx", "--link-share", "tenant_readable", "--external-access"})
