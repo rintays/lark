@@ -23,7 +23,7 @@ func newMailCmd(state *appState) *cobra.Command {
 		Short: "Manage Mail messages",
 	}
 	cmd.AddCommand(newMailMailboxCmd(state))
-	cmd.AddCommand(newMailMailboxesCmd(state))
+	cmd.AddCommand(newMailPublicMailboxesCmd(state))
 	cmd.AddCommand(newMailFoldersCmd(state))
 	cmd.AddCommand(newMailListCmd(state))
 	cmd.AddCommand(newMailGetCmd(state))
@@ -106,55 +106,43 @@ func newMailMailboxSetCmd(state *appState) *cobra.Command {
 	return cmd
 }
 
-func newMailMailboxesCmd(state *appState) *cobra.Command {
+func newMailPublicMailboxesCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "mailboxes",
-		Short: "Manage mailboxes",
+		Use:   "public-mailboxes",
+		Short: "Discover public mailboxes",
 	}
-	cmd.AddCommand(newMailMailboxesListCmd(state))
+	cmd.AddCommand(newMailPublicMailboxesListCmd(state))
 	return cmd
 }
 
-func newMailMailboxesListCmd(state *appState) *cobra.Command {
-	var userAccessToken string
-	const userTokenHint = "mail mailboxes list requires a user access token; pass --user-access-token, set LARK_USER_ACCESS_TOKEN, or run `lark auth user login`"
-
+func newMailPublicMailboxesListCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
-		Short: "List mailboxes",
+		Short: "List public mailboxes",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			token := userAccessToken
-			if token == "" {
-				token = os.Getenv("LARK_USER_ACCESS_TOKEN")
-			}
-			if token == "" {
-				var err error
-				token, err = ensureUserToken(context.Background(), state)
-				if err != nil || token == "" {
-					return errors.New(userTokenHint)
-				}
+			token, err := ensureTenantToken(context.Background(), state)
+			if err != nil {
+				return err
 			}
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
 			}
-			mailboxes, err := state.SDK.ListMailboxes(context.Background(), token)
+			mailboxes, err := state.SDK.ListPublicMailboxes(context.Background(), token)
 			if err != nil {
 				return err
 			}
-			payload := map[string]any{"mailboxes": mailboxes}
+			payload := map[string]any{"public_mailboxes": mailboxes}
 			lines := make([]string, 0, len(mailboxes))
 			for _, mailbox := range mailboxes {
 				lines = append(lines, formatMailMailboxLine(mailbox))
 			}
-			text := "no mailboxes found"
+			text := "no public mailboxes found"
 			if len(lines) > 0 {
 				text = strings.Join(lines, "\n")
 			}
 			return state.Printer.Print(payload, text)
 		},
 	}
-
-	cmd.Flags().StringVar(&userAccessToken, "user-access-token", "", "user access token (OAuth)")
 	return cmd
 }
 
