@@ -124,3 +124,36 @@ func TestRootHelpShowsMeetingsCommand(t *testing.T) {
 		t.Fatalf("expected meetings command in help output, got:\n%s", buf.String())
 	}
 }
+
+func TestRootHelpShowsMinutesCommand(t *testing.T) {
+	cmd := newRootCmd()
+	cmd.PersistentPreRunE = nil
+
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	cmd.SetErr(&buf)
+	cmd.SetArgs([]string{"--help"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("help error: %v", err)
+	}
+
+	foundMinutes := false
+	scanner := bufio.NewScanner(strings.NewReader(buf.String()))
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmed := strings.TrimLeft(line, " \t")
+		if trimmed == "minutes" || strings.HasPrefix(trimmed, "minutes ") || strings.HasPrefix(trimmed, "minutes\t") {
+			foundMinutes = true
+		}
+		if trimmed == "minute" || strings.HasPrefix(trimmed, "minute ") || strings.HasPrefix(trimmed, "minute\t") {
+			t.Fatalf("unexpected minute command in help output: %q", line)
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("scan help output: %v", err)
+	}
+	if !foundMinutes {
+		t.Fatalf("expected minutes command in help output, got:\n%s", buf.String())
+	}
+}
