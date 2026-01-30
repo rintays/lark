@@ -855,6 +855,118 @@ func TestGetDocxDocument(t *testing.T) {
 	}
 }
 
+func TestCreateExportTask(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/export_tasks" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["token"] != "doc1" || payload["type"] != "docx" || payload["file_extension"] != "pdf" {
+			t.Fatalf("unexpected payload: %+v", payload)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"ticket": "ticket1",
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	ticket, err := client.CreateExportTask(context.Background(), "token", CreateExportTaskRequest{
+		Token:         "doc1",
+		Type:          "docx",
+		FileExtension: "pdf",
+	})
+	if err != nil {
+		t.Fatalf("CreateExportTask error: %v", err)
+	}
+	if ticket != "ticket1" {
+		t.Fatalf("unexpected ticket: %s", ticket)
+	}
+}
+
+func TestGetExportTask(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/export_tasks/ticket1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"result": map[string]any{
+					"file_extension": "pdf",
+					"type":           "docx",
+					"file_name":      "Doc.pdf",
+					"file_token":     "file1",
+					"file_size":      10,
+					"job_error_msg":  "success",
+					"job_status":     0,
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	result, err := client.GetExportTask(context.Background(), "token", "ticket1")
+	if err != nil {
+		t.Fatalf("GetExportTask error: %v", err)
+	}
+	if result.FileToken != "file1" || result.JobStatus != 0 {
+		t.Fatalf("unexpected result: %+v", result)
+	}
+}
+
+func TestDownloadExportedFile(t *testing.T) {
+	content := []byte("export bytes")
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/export_tasks/file/file1/download" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_, _ = w.Write(content)
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	reader, err := client.DownloadExportedFile(context.Background(), "token", "file1")
+	if err != nil {
+		t.Fatalf("DownloadExportedFile error: %v", err)
+	}
+	defer reader.Close()
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("read download: %v", err)
+	}
+	if !bytes.Equal(data, content) {
+		t.Fatalf("unexpected download: %q", string(data))
+	}
+}
+
 func TestReadSheetRange(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

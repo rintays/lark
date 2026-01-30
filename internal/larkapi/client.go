@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"mime/multipart"
@@ -1304,6 +1305,159 @@ func (c *Client) GetDocxDocument(ctx context.Context, token, documentID string) 
 		return DocxDocument{}, fmt.Errorf("get docx document failed: %s", parsed.Msg)
 	}
 	return parsed.Data.Document, nil
+}
+
+type CreateExportTaskRequest struct {
+	Token         string
+	Type          string
+	FileExtension string
+}
+
+type createExportTaskResponse struct {
+	apiResponse
+	Data struct {
+		Ticket string `json:"ticket"`
+	} `json:"data"`
+}
+
+func (c *Client) CreateExportTask(ctx context.Context, token string, req CreateExportTaskRequest) (string, error) {
+	if req.Token == "" {
+		return "", fmt.Errorf("export token is required")
+	}
+	if req.Type == "" {
+		return "", fmt.Errorf("export type is required")
+	}
+	if req.FileExtension == "" {
+		return "", fmt.Errorf("file extension is required")
+	}
+	payload := map[string]any{
+		"token":          req.Token,
+		"type":           req.Type,
+		"file_extension": req.FileExtension,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return "", err
+	}
+	endpoint, err := c.endpoint("/open-apis/drive/v1/export_tasks", nil)
+	if err != nil {
+		return "", err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return "", err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return "", err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return "", err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return "", fmt.Errorf("create export task failed: %s", resp.Status)
+	}
+	var parsed createExportTaskResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return "", err
+	}
+	if parsed.Code != 0 {
+		return "", fmt.Errorf("create export task failed: %s", parsed.Msg)
+	}
+	if parsed.Data.Ticket == "" {
+		return "", errors.New("export task response missing ticket")
+	}
+	return parsed.Data.Ticket, nil
+}
+
+type ExportTaskResult struct {
+	FileExtension string `json:"file_extension"`
+	Type          string `json:"type"`
+	FileName      string `json:"file_name"`
+	FileToken     string `json:"file_token"`
+	FileSize      int64  `json:"file_size"`
+	JobErrorMsg   string `json:"job_error_msg"`
+	JobStatus     int    `json:"job_status"`
+}
+
+type getExportTaskResponse struct {
+	apiResponse
+	Data struct {
+		Result ExportTaskResult `json:"result"`
+	} `json:"data"`
+}
+
+func (c *Client) GetExportTask(ctx context.Context, token, ticket string) (ExportTaskResult, error) {
+	if ticket == "" {
+		return ExportTaskResult{}, fmt.Errorf("export ticket is required")
+	}
+	endpoint, err := c.endpoint("/open-apis/drive/v1/export_tasks/"+url.PathEscape(ticket), nil)
+	if err != nil {
+		return ExportTaskResult{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return ExportTaskResult{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return ExportTaskResult{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ExportTaskResult{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s", resp.Status)
+	}
+	var parsed getExportTaskResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return ExportTaskResult{}, err
+	}
+	if parsed.Code != 0 {
+		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s", parsed.Msg)
+	}
+	return parsed.Data.Result, nil
+}
+
+func (c *Client) DownloadExportedFile(ctx context.Context, token, fileToken string) (io.ReadCloser, error) {
+	if fileToken == "" {
+		return nil, fmt.Errorf("export file token is required")
+	}
+	endpoint, err := c.endpoint("/open-apis/drive/v1/export_tasks/file/"+url.PathEscape(fileToken)+"/download", nil)
+	if err != nil {
+		return nil, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		data, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			return nil, fmt.Errorf("export download failed: %s", resp.Status)
+		}
+		if len(data) == 0 {
+			return nil, fmt.Errorf("export download failed: %s", resp.Status)
+		}
+		return nil, fmt.Errorf("export download failed: %s: %s", resp.Status, string(bytes.TrimSpace(data)))
+	}
+	return resp.Body, nil
 }
 
 type SheetValueRange struct {

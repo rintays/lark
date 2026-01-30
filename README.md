@@ -110,6 +110,12 @@ Get Docs (docx) metadata:
 lark docs get --doc-id <DOCUMENT_ID>
 ```
 
+Export a Docs (docx) document to PDF:
+
+```bash
+lark docs export --doc-id <DOCUMENT_ID> --format pdf --out ./document.pdf
+```
+
 Read a Sheets range:
 
 ```bash
