@@ -55,6 +55,42 @@ lark users search --name "Ada"
 lark users search --name "Ada" --department-id 0
 ```
 
+List Drive files in a folder:
+
+```bash
+lark drive list --folder-id <FOLDER_TOKEN> --limit 20
+```
+
+Search Drive files by text:
+
+```bash
+lark drive search --query "budget" --limit 10
+```
+
+Get Drive file URLs:
+
+```bash
+lark drive urls <FILE_ID> [FILE_ID...]
+```
+
+Create a Docs (docx) document:
+
+```bash
+lark docs create --title "Weekly Update" --folder-id <FOLDER_TOKEN>
+```
+
+Get Docs (docx) metadata:
+
+```bash
+lark docs get --doc-id <DOCUMENT_ID>
+```
+
+Read a Sheets range:
+
+```bash
+lark sheets read --spreadsheet-id <SPREADSHEET_TOKEN> --range "Sheet1!A1:B2"
+```
+
 ### Global flags
 
 - `--config` override the config path.
