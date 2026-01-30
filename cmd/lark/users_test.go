@@ -124,3 +124,33 @@ func TestUsersSearchByName(t *testing.T) {
 		t.Fatalf("unexpected output: %q", buf.String())
 	}
 }
+
+func TestUsersSearchRequiresSDK(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("unexpected request: %s", r.URL.Path)
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
+	}
+
+	cmd := newUsersCmd(state)
+	cmd.SetArgs([]string{"search", "--email", "dev@example.com"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatalf("expected error")
+	}
+	if !strings.Contains(err.Error(), "sdk client is required") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
