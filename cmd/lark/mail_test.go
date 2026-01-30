@@ -50,6 +50,7 @@ func TestMailFoldersCommandWithSDK(t *testing.T) {
 			AppID:                      "app",
 			AppSecret:                  "secret",
 			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
 			TenantAccessToken:          "token",
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
@@ -129,20 +130,59 @@ func TestMailFoldersCommandUsesDefaultMailboxID(t *testing.T) {
 	}
 }
 
-func TestMailFoldersCommandRequiresMailboxID(t *testing.T) {
+func TestMailFoldersCommandDefaultsToMeMailboxID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes/me/folders" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"items": []map[string]any{
+					{
+						"folder_id":   "fld_1",
+						"name":        "Inbox",
+						"folder_type": "INBOX",
+					},
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
 	state := &appState{
-		Config:  config.Default(),
-		Printer: output.Printer{Writer: &bytes.Buffer{}},
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
 	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
 
 	cmd := newMailCmd(state)
 	cmd.SetArgs([]string{"folders"})
-	err := cmd.Execute()
-	if err == nil {
-		t.Fatal("expected error")
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("mail folders error: %v", err)
 	}
-	if err.Error() != "mailbox id is required; run lark mail mailbox set --mailbox-id <id>" {
-		t.Fatalf("unexpected error: %v", err)
+
+	if !strings.Contains(buf.String(), "fld_1\tInbox\tINBOX") {
+		t.Fatalf("unexpected output: %q", buf.String())
 	}
 }
 
@@ -180,6 +220,7 @@ func TestMailPublicMailboxesListCommandWithSDK(t *testing.T) {
 			AppID:                      "app",
 			AppSecret:                  "secret",
 			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
 			TenantAccessToken:          "token",
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
@@ -234,6 +275,7 @@ func TestMailMailboxGetCommandWithSDK(t *testing.T) {
 			AppID:                      "app",
 			AppSecret:                  "secret",
 			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
 			TenantAccessToken:          "token",
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
@@ -346,6 +388,7 @@ func TestMailListCommandWithSDK(t *testing.T) {
 			AppID:                      "app",
 			AppSecret:                  "secret",
 			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
 			TenantAccessToken:          "token",
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
@@ -374,12 +417,240 @@ func TestMailListCommandWithSDK(t *testing.T) {
 	}
 }
 
+func TestMailListCommandUsesDefaultMailboxID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes/mbx_default/messages" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("page_size") != "1" {
+			t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"items": []map[string]any{
+					{
+						"message_id": "msg_1",
+						"subject":    "Hello",
+					},
+				},
+				"has_more":   false,
+				"page_token": "",
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newMailCmd(state)
+	cmd.SetArgs([]string{"list", "--limit", "1"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("mail list error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "msg_1\tHello") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestMailListCommandDefaultsToMeMailboxID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes/me/messages" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("page_size") != "1" {
+			t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"items": []map[string]any{
+					{
+						"message_id": "msg_1",
+						"subject":    "Hello",
+					},
+				},
+				"has_more":   false,
+				"page_token": "",
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newMailCmd(state)
+	cmd.SetArgs([]string{"list", "--limit", "1"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("mail list error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "msg_1\tHello") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
 func TestMailGetCommandWithSDK(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Fatalf("expected GET, got %s", r.Method)
 		}
 		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes/mbx_1/messages/msg_1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"message": map[string]any{
+					"message_id": "msg_1",
+					"subject":    "Hello",
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newMailCmd(state)
+	cmd.SetArgs([]string{"get", "msg_1", "--mailbox-id", "mbx_1"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("mail get error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "msg_1\tHello") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestMailGetCommandUsesDefaultMailboxID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes/mbx_default/messages/msg_1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"message": map[string]any{
+					"message_id": "msg_1",
+					"subject":    "Hello",
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newMailCmd(state)
+	cmd.SetArgs([]string{"get", "msg_1"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("mail get error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "msg_1\tHello") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestMailGetCommandDefaultsToMeMailboxID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes/me/messages/msg_1" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
 		if r.Header.Get("Authorization") != "Bearer token" {
@@ -417,7 +688,7 @@ func TestMailGetCommandWithSDK(t *testing.T) {
 	state.SDK = sdkClient
 
 	cmd := newMailCmd(state)
-	cmd.SetArgs([]string{"get", "msg_1", "--mailbox-id", "mbx_1"})
+	cmd.SetArgs([]string{"get", "msg_1"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("mail get error: %v", err)
 	}
@@ -426,7 +697,6 @@ func TestMailGetCommandWithSDK(t *testing.T) {
 		t.Fatalf("unexpected output: %q", buf.String())
 	}
 }
-
 func TestMailGetCommandRequiresMessageID(t *testing.T) {
 	cmd := newMailCmd(&appState{})
 	cmd.SetArgs([]string{"get", "--mailbox-id", "mbx_1"})
@@ -592,6 +862,7 @@ func setupMailSendState(t *testing.T, expectedToken string) (*appState, *bytes.B
 
 func TestMailSendCommandUsesFlagToken(t *testing.T) {
 	state, _ := setupMailSendState(t, "flag-token")
+	state.Config.DefaultMailboxID = "mbx_default"
 	state.Config.UserAccessToken = "cached-token"
 	state.Config.UserAccessTokenExpiresAt = time.Now().Add(2 * time.Hour).Unix()
 	t.Setenv("LARK_USER_ACCESS_TOKEN", "env-token")
@@ -722,6 +993,62 @@ func TestMailSendCommandWithSDK(t *testing.T) {
 		"--cc", "cc@example.com",
 		"--text", "hi",
 		"--from-name", "Lark Bot",
+		"--user-access-token", "user-token",
+	})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("mail send error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "message_id: msg_1") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestMailSendDefaultsToConfigMailboxID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes/mbx_default/messages/send" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer user-token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"message_id": "msg_1",
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
+			TenantAccessToken:          "tenant-token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newMailCmd(state)
+	cmd.SetArgs([]string{
+		"send",
+		"--subject", "Hello",
+		"--to", "a@example.com",
+		"--text", "hi",
 		"--user-access-token", "user-token",
 	})
 	if err := cmd.Execute(); err != nil {

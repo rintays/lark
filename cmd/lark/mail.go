@@ -12,10 +12,7 @@ import (
 	"lark/internal/larksdk"
 )
 
-const (
-	maxMailPageSize        = 200
-	mailboxIDRequiredError = "mailbox id is required; run lark mail mailbox set --mailbox-id <id>"
-)
+const maxMailPageSize = 200
 
 func newMailCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
@@ -153,11 +150,7 @@ func newMailFoldersCmd(state *appState) *cobra.Command {
 		Use:   "folders",
 		Short: "List mail folders",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var err error
-			mailboxID, err = resolveMailboxID(state, mailboxID)
-			if err != nil {
-				return err
-			}
+			mailboxID = resolveMailboxID(state, mailboxID)
 			token, err := ensureTenantToken(context.Background(), state)
 			if err != nil {
 				return err
@@ -199,11 +192,7 @@ func newMailListCmd(state *appState) *cobra.Command {
 			if limit <= 0 {
 				return errors.New("limit must be greater than 0")
 			}
-			var err error
-			mailboxID, err = resolveMailboxID(state, mailboxID)
-			if err != nil {
-				return err
-			}
+			mailboxID = resolveMailboxID(state, mailboxID)
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
 			}
@@ -284,11 +273,7 @@ func newMailGetCmd(state *appState) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var err error
-			mailboxID, err = resolveMailboxID(state, mailboxID)
-			if err != nil {
-				return err
-			}
+			mailboxID = resolveMailboxID(state, mailboxID)
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
 			}
@@ -339,9 +324,8 @@ func newMailSendCmd(state *appState) *cobra.Command {
 				}
 			}
 
-			// Default mailbox resolution for user-token operations.
-			// If not provided and no default mailbox configured, use literal "me".
-			mailboxID = resolveMailboxIDForUser(state, mailboxID)
+			// Default mailbox resolution: flag > config default > "me".
+			mailboxID = resolveMailboxID(state, mailboxID)
 
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
@@ -424,17 +408,7 @@ func formatMailMailboxLine(mailbox larksdk.Mailbox) string {
 	return strings.Join(parts, "\t")
 }
 
-func resolveMailboxID(state *appState, mailboxID string) (string, error) {
-	if mailboxID == "" && state != nil && state.Config != nil {
-		mailboxID = state.Config.DefaultMailboxID
-	}
-	if mailboxID == "" {
-		return "", errors.New(mailboxIDRequiredError)
-	}
-	return mailboxID, nil
-}
-
-func resolveMailboxIDForUser(state *appState, mailboxID string) string {
+func resolveMailboxID(state *appState, mailboxID string) string {
 	if mailboxID != "" {
 		return mailboxID
 	}
