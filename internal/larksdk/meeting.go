@@ -7,8 +7,6 @@ import (
 	"net/http"
 
 	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
-
-	"lark/internal/larkapi"
 )
 
 type getMeetingResponse struct {
@@ -18,23 +16,23 @@ type getMeetingResponse struct {
 }
 
 type getMeetingResponseData struct {
-	Meeting *larkapi.Meeting `json:"meeting"`
+	Meeting *Meeting `json:"meeting"`
 }
 
 func (r *getMeetingResponse) Success() bool {
 	return r.Code == 0
 }
 
-func (c *Client) GetMeeting(ctx context.Context, token string, req larkapi.GetMeetingRequest) (larkapi.Meeting, error) {
+func (c *Client) GetMeeting(ctx context.Context, token string, req GetMeetingRequest) (Meeting, error) {
 	if !c.available() || c.coreConfig == nil {
-		return larkapi.Meeting{}, ErrUnavailable
+		return Meeting{}, ErrUnavailable
 	}
 	if req.MeetingID == "" {
-		return larkapi.Meeting{}, errors.New("meeting id is required")
+		return Meeting{}, errors.New("meeting id is required")
 	}
 	tenantToken := c.tenantToken(token)
 	if tenantToken == "" {
-		return larkapi.Meeting{}, errors.New("tenant access token is required")
+		return Meeting{}, errors.New("tenant access token is required")
 	}
 
 	apiReq := &larkcore.ApiReq{
@@ -60,20 +58,20 @@ func (c *Client) GetMeeting(ctx context.Context, token string, req larkapi.GetMe
 
 	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
-		return larkapi.Meeting{}, err
+		return Meeting{}, err
 	}
 	if apiResp == nil {
-		return larkapi.Meeting{}, errors.New("get meeting failed: empty response")
+		return Meeting{}, errors.New("get meeting failed: empty response")
 	}
 	resp := &getMeetingResponse{ApiResp: apiResp}
 	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
-		return larkapi.Meeting{}, err
+		return Meeting{}, err
 	}
 	if !resp.Success() {
-		return larkapi.Meeting{}, fmt.Errorf("get meeting failed: %s", resp.Msg)
+		return Meeting{}, fmt.Errorf("get meeting failed: %s", resp.Msg)
 	}
 	if resp.Data == nil || resp.Data.Meeting == nil || resp.Data.Meeting.ID == "" {
-		return larkapi.Meeting{}, errors.New("get meeting response missing meeting")
+		return Meeting{}, errors.New("get meeting response missing meeting")
 	}
 	return *resp.Data.Meeting, nil
 }

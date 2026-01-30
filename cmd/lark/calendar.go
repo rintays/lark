@@ -10,7 +10,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"lark/internal/larkapi"
+	"lark/internal/larksdk"
 )
 
 func newCalendarCmd(state *appState) *cobra.Command {
@@ -51,11 +51,14 @@ func newCalendarListCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			resolvedCalendarID, err := resolveCalendarID(context.Background(), state, token, calendarID)
 			if err != nil {
 				return err
 			}
-			result, err := state.Client.ListCalendarEvents(context.Background(), token, larkapi.ListCalendarEventsRequest{
+			result, err := state.SDK.ListCalendarEvents(context.Background(), token, larksdk.ListCalendarEventsRequest{
 				CalendarID: resolvedCalendarID,
 				StartTime:  strconv.FormatInt(startTime.Unix(), 10),
 				EndTime:    strconv.FormatInt(endTime.Unix(), 10),
@@ -121,11 +124,14 @@ func newCalendarCreateCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			resolvedCalendarID, err := resolveCalendarID(context.Background(), state, token, calendarID)
 			if err != nil {
 				return err
 			}
-			event, err := state.Client.CreateCalendarEvent(context.Background(), token, larkapi.CreateCalendarEventRequest{
+			event, err := state.SDK.CreateCalendarEvent(context.Background(), token, larksdk.CreateCalendarEventRequest{
 				CalendarID:  resolvedCalendarID,
 				Summary:     summary,
 				Description: description,
@@ -135,18 +141,18 @@ func newCalendarCreateCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			attendeeRecords := make([]larkapi.CalendarEventAttendee, 0, len(attendees))
+			attendeeRecords := make([]larksdk.CalendarEventAttendee, 0, len(attendees))
 			for _, email := range attendees {
 				if email == "" {
 					continue
 				}
-				attendeeRecords = append(attendeeRecords, larkapi.CalendarEventAttendee{
+				attendeeRecords = append(attendeeRecords, larksdk.CalendarEventAttendee{
 					Type:            "third_party",
 					ThirdPartyEmail: email,
 				})
 			}
 			if len(attendeeRecords) > 0 {
-				if err := state.Client.CreateCalendarEventAttendees(context.Background(), token, larkapi.CreateCalendarEventAttendeesRequest{
+				if err := state.SDK.CreateCalendarEventAttendees(context.Background(), token, larksdk.CreateCalendarEventAttendeesRequest{
 					CalendarID: resolvedCalendarID,
 					EventID:    event.EventID,
 					Attendees:  attendeeRecords,
@@ -181,7 +187,10 @@ func resolveCalendarID(ctx context.Context, state *appState, token, calendarID s
 	if calendarID != "" {
 		return calendarID, nil
 	}
-	cal, err := state.Client.PrimaryCalendar(ctx, token)
+	if state.SDK == nil {
+		return "", errors.New("sdk client is required")
+	}
+	cal, err := state.SDK.PrimaryCalendar(ctx, token)
 	if err != nil {
 		return "", err
 	}
@@ -191,7 +200,7 @@ func resolveCalendarID(ctx context.Context, state *appState, token, calendarID s
 	return cal.CalendarID, nil
 }
 
-func formatEventTime(eventTime larkapi.CalendarEventTime) string {
+func formatEventTime(eventTime larksdk.CalendarEventTime) string {
 	if eventTime.Timestamp != "" {
 		seconds, err := strconv.ParseInt(eventTime.Timestamp, 10, 64)
 		if err != nil {

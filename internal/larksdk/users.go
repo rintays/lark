@@ -7,11 +7,9 @@ import (
 
 	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
 	contact "github.com/larksuite/oapi-sdk-go/v3/service/contact/v3"
-
-	"lark/internal/larkapi"
 )
 
-func (c *Client) BatchGetUserIDs(ctx context.Context, token string, req larkapi.BatchGetUserIDRequest) ([]larkapi.User, error) {
+func (c *Client) BatchGetUserIDs(ctx context.Context, token string, req BatchGetUserIDRequest) ([]User, error) {
 	if !c.available() {
 		return nil, ErrUnavailable
 	}
@@ -40,9 +38,9 @@ func (c *Client) BatchGetUserIDs(ctx context.Context, token string, req larkapi.
 		return nil, fmt.Errorf("batch get user ids failed: %s", resp.Msg)
 	}
 
-	users := []larkapi.User{}
+	users := []User{}
 	if resp.Data != nil && resp.Data.UserList != nil {
-		users = make([]larkapi.User, 0, len(resp.Data.UserList))
+		users = make([]User, 0, len(resp.Data.UserList))
 		for _, user := range resp.Data.UserList {
 			users = append(users, mapContactInfo(user))
 		}
@@ -50,13 +48,13 @@ func (c *Client) BatchGetUserIDs(ctx context.Context, token string, req larkapi.
 	return users, nil
 }
 
-func (c *Client) ListUsersByDepartment(ctx context.Context, token string, req larkapi.ListUsersByDepartmentRequest) (larkapi.ListUsersByDepartmentResult, error) {
+func (c *Client) ListUsersByDepartment(ctx context.Context, token string, req ListUsersByDepartmentRequest) (ListUsersByDepartmentResult, error) {
 	if !c.available() {
-		return larkapi.ListUsersByDepartmentResult{}, ErrUnavailable
+		return ListUsersByDepartmentResult{}, ErrUnavailable
 	}
 	tenantToken := c.tenantToken(token)
 	if tenantToken == "" {
-		return larkapi.ListUsersByDepartmentResult{}, errors.New("tenant access token is required")
+		return ListUsersByDepartmentResult{}, errors.New("tenant access token is required")
 	}
 
 	builder := contact.NewFindByDepartmentUserReqBuilder()
@@ -75,19 +73,19 @@ func (c *Client) ListUsersByDepartment(ctx context.Context, token string, req la
 
 	resp, err := c.sdk.Contact.V3.User.FindByDepartment(ctx, builder.Build(), larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
-		return larkapi.ListUsersByDepartmentResult{}, err
+		return ListUsersByDepartmentResult{}, err
 	}
 	if resp == nil {
-		return larkapi.ListUsersByDepartmentResult{}, errors.New("list users failed: empty response")
+		return ListUsersByDepartmentResult{}, errors.New("list users failed: empty response")
 	}
 	if !resp.Success() {
-		return larkapi.ListUsersByDepartmentResult{}, fmt.Errorf("list users failed: %s", resp.Msg)
+		return ListUsersByDepartmentResult{}, fmt.Errorf("list users failed: %s", resp.Msg)
 	}
 
-	result := larkapi.ListUsersByDepartmentResult{}
+	result := ListUsersByDepartmentResult{}
 	if resp.Data != nil {
 		if resp.Data.Items != nil {
-			result.Items = make([]larkapi.User, 0, len(resp.Data.Items))
+			result.Items = make([]User, 0, len(resp.Data.Items))
 			for _, user := range resp.Data.Items {
 				result.Items = append(result.Items, mapContactUser(user))
 			}
@@ -102,16 +100,16 @@ func (c *Client) ListUsersByDepartment(ctx context.Context, token string, req la
 	return result, nil
 }
 
-func (c *Client) GetContactUser(ctx context.Context, token string, req larkapi.GetContactUserRequest) (larkapi.User, error) {
+func (c *Client) GetContactUser(ctx context.Context, token string, req GetContactUserRequest) (User, error) {
 	if !c.available() {
-		return larkapi.User{}, ErrUnavailable
+		return User{}, ErrUnavailable
 	}
 	if req.UserID == "" {
-		return larkapi.User{}, fmt.Errorf("user id is required")
+		return User{}, fmt.Errorf("user id is required")
 	}
 	tenantToken := c.tenantToken(token)
 	if tenantToken == "" {
-		return larkapi.User{}, errors.New("tenant access token is required")
+		return User{}, errors.New("tenant access token is required")
 	}
 
 	builder := contact.NewGetUserReqBuilder().UserId(req.UserID)
@@ -120,26 +118,26 @@ func (c *Client) GetContactUser(ctx context.Context, token string, req larkapi.G
 	}
 	resp, err := c.sdk.Contact.V3.User.Get(ctx, builder.Build(), larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
-		return larkapi.User{}, err
+		return User{}, err
 	}
 	if resp == nil {
-		return larkapi.User{}, errors.New("get contact user failed: empty response")
+		return User{}, errors.New("get contact user failed: empty response")
 	}
 	if !resp.Success() {
-		return larkapi.User{}, fmt.Errorf("get contact user failed: %s", resp.Msg)
+		return User{}, fmt.Errorf("get contact user failed: %s", resp.Msg)
 	}
 
 	if resp.Data != nil && resp.Data.User != nil {
 		return mapContactUser(resp.Data.User), nil
 	}
-	return larkapi.User{}, nil
+	return User{}, nil
 }
 
-func mapContactInfo(user *contact.UserContactInfo) larkapi.User {
+func mapContactInfo(user *contact.UserContactInfo) User {
 	if user == nil {
-		return larkapi.User{}
+		return User{}
 	}
-	result := larkapi.User{}
+	result := User{}
 	if user.UserId != nil {
 		result.UserID = *user.UserId
 	}
@@ -152,11 +150,11 @@ func mapContactInfo(user *contact.UserContactInfo) larkapi.User {
 	return result
 }
 
-func mapContactUser(user *contact.User) larkapi.User {
+func mapContactUser(user *contact.User) User {
 	if user == nil {
-		return larkapi.User{}
+		return User{}
 	}
-	result := larkapi.User{}
+	result := User{}
 	if user.UserId != nil {
 		result.UserID = *user.UserId
 	}

@@ -7,8 +7,6 @@ import (
 	"net/http"
 
 	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
-
-	"lark/internal/larkapi"
 )
 
 type listMailFoldersResponse struct {
@@ -18,7 +16,7 @@ type listMailFoldersResponse struct {
 }
 
 type listMailFoldersResponseData struct {
-	Items []larkapi.MailFolder `json:"items"`
+	Items []MailFolder `json:"items"`
 }
 
 func (r *listMailFoldersResponse) Success() bool {
@@ -162,7 +160,7 @@ func (r *sendMailResponse) Success() bool {
 	return r.Code == 0
 }
 
-func (c *Client) ListMailFolders(ctx context.Context, token, mailboxID string) ([]larkapi.MailFolder, error) {
+func (c *Client) ListMailFolders(ctx context.Context, token, mailboxID string) ([]MailFolder, error) {
 	if !c.available() || c.coreConfig == nil {
 		return nil, ErrUnavailable
 	}

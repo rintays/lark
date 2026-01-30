@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
@@ -46,10 +45,6 @@ func TestDriveListCommandWithSDK(t *testing.T) {
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for drive list")
-	})}}
-
 	var buf bytes.Buffer
 	state := &appState{
 		Config: &config.Config{
@@ -60,7 +55,6 @@ func TestDriveListCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -109,10 +103,6 @@ func TestDriveSearchCommand(t *testing.T) {
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for drive search")
-	})}}
-
 	var buf bytes.Buffer
 	state := &appState{
 		Config: &config.Config{
@@ -123,7 +113,6 @@ func TestDriveSearchCommand(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -161,10 +150,6 @@ func TestDriveGetCommandWithSDK(t *testing.T) {
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for drive get")
-	})}}
-
 	var buf bytes.Buffer
 	state := &appState{
 		Config: &config.Config{
@@ -175,7 +160,6 @@ func TestDriveGetCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -543,9 +527,6 @@ func TestDriveExportCommand(t *testing.T) {
 				}
 			})
 			httpClient, baseURL := testutil.NewTestClient(handler)
-			legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-				t.Fatalf("legacy client used for drive export")
-			})}}
 
 			outDir := t.TempDir()
 			outPath := filepath.Join(outDir, "export.pdf")
@@ -561,7 +542,6 @@ func TestDriveExportCommand(t *testing.T) {
 				},
 				JSON:    tc.useJSON,
 				Printer: output.Printer{Writer: &buf, JSON: tc.useJSON},
-				Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 			}
 			sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 			if err != nil {

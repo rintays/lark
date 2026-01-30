@@ -1,10 +1,6 @@
 package larksdk
 
-import (
-	"io"
-
-	"lark/internal/larkapi"
-)
+import "io"
 
 type Chat struct {
 	ChatID      string `json:"chat_id"`
@@ -34,34 +30,6 @@ type MessageRequest struct {
 	ReceiveIDType string
 	Text          string
 }
-
-type CreateExportTaskRequest = larkapi.CreateExportTaskRequest
-
-type ExportTaskResult = larkapi.ExportTaskResult
-
-type DocxDocument = larkapi.DocxDocument
-
-type CreateDocxDocumentRequest = larkapi.CreateDocxDocumentRequest
-
-type Meeting = larkapi.Meeting
-
-type GetMeetingRequest = larkapi.GetMeetingRequest
-
-type Minute = larkapi.Minute
-
-type ListMinutesRequest = larkapi.ListMinutesRequest
-
-type ListMinutesResult = larkapi.ListMinutesResult
-
-type User = larkapi.User
-
-type GetContactUserRequest = larkapi.GetContactUserRequest
-
-type BatchGetUserIDRequest = larkapi.BatchGetUserIDRequest
-
-type ListUsersByDepartmentRequest = larkapi.ListUsersByDepartmentRequest
-
-type ListUsersByDepartmentResult = larkapi.ListUsersByDepartmentResult
 
 type DriveFile struct {
 	Token     string `json:"token"`
@@ -112,10 +80,6 @@ type SearchDriveFilesResult struct {
 	PageToken string
 	HasMore   bool
 }
-
-type SheetValueRange = larkapi.SheetValueRange
-
-type SpreadsheetMetadata = larkapi.SpreadsheetMetadata
 
 type SheetValueRangeInput struct {
 	Range          string  `json:"range"`

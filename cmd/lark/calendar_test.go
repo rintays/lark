@@ -10,7 +10,7 @@ import (
 	"time"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
+	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
 )
@@ -27,6 +27,7 @@ func TestCalendarListCommand(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST, got %s", r.Method)
 			}
+			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"msg":  "ok",
@@ -49,6 +50,7 @@ func TestCalendarListCommand(t *testing.T) {
 			if r.URL.Query().Get("page_size") != "2" {
 				t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
 			}
+			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"msg":  "ok",
@@ -84,8 +86,12 @@ func TestCalendarListCommand(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
 
 	cmd := newCalendarCmd(state)
 	cmd.SetArgs([]string{"list", "--start", start, "--end", end, "--limit", "2"})
@@ -107,6 +113,7 @@ func TestCalendarCreateCommand(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
 		case "/open-apis/calendar/v4/calendars/primary":
+			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"msg":  "ok",
@@ -117,6 +124,7 @@ func TestCalendarCreateCommand(t *testing.T) {
 				},
 			})
 		case "/open-apis/calendar/v4/calendars/cal_1/events":
+			w.Header().Set("Content-Type", "application/json")
 			var payload map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 				t.Fatalf("decode payload: %v", err)
@@ -143,6 +151,7 @@ func TestCalendarCreateCommand(t *testing.T) {
 				},
 			})
 		case "/open-apis/calendar/v4/calendars/cal_1/events/evt_1/attendees":
+			w.Header().Set("Content-Type", "application/json")
 			var payload map[string]any
 			if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 				t.Fatalf("decode payload: %v", err)
@@ -175,8 +184,12 @@ func TestCalendarCreateCommand(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
 
 	cmd := newCalendarCmd(state)
 	cmd.SetArgs([]string{

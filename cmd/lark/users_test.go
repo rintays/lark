@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
@@ -42,9 +41,6 @@ func TestUsersGetCommand(t *testing.T) {
 		})
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for users get")
-	})}}
 
 	var buf bytes.Buffer
 	state := &appState{
@@ -56,7 +52,6 @@ func TestUsersGetCommand(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
