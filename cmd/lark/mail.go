@@ -327,11 +327,6 @@ func newMailSendCmd(state *appState) *cobra.Command {
 		Use:   "send",
 		Short: "Send an email message",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			var err error
-			mailboxID, err = resolveMailboxID(state, mailboxID)
-			if err != nil {
-				return err
-			}
 			token := userAccessToken
 			if token == "" {
 				token = os.Getenv("LARK_USER_ACCESS_TOKEN")
@@ -343,6 +338,11 @@ func newMailSendCmd(state *appState) *cobra.Command {
 					return errors.New(userTokenHint)
 				}
 			}
+
+			// Default mailbox resolution for user-token operations.
+			// If not provided and no default mailbox configured, use literal "me".
+			mailboxID = resolveMailboxIDForUser(state, mailboxID)
+
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
 			}
@@ -432,6 +432,18 @@ func resolveMailboxID(state *appState, mailboxID string) (string, error) {
 		return "", errors.New(mailboxIDRequiredError)
 	}
 	return mailboxID, nil
+}
+
+func resolveMailboxIDForUser(state *appState, mailboxID string) string {
+	if mailboxID != "" {
+		return mailboxID
+	}
+	if state != nil && state.Config != nil && state.Config.DefaultMailboxID != "" {
+		return state.Config.DefaultMailboxID
+	}
+	// Feishu Mail OpenAPI supports using literal "me" as the mailbox id for the
+	// current authenticated user (user access token).
+	return "me"
 }
 
 func buildMailAddressInputs(values []string) []larksdk.MailAddressInput {
