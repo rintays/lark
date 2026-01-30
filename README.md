@@ -118,6 +118,12 @@ Create a Docs (docx) document:
 lark docs create --title "Weekly Update" --folder-id <FOLDER_TOKEN>
 ```
 
+Show docs create help:
+
+```bash
+./lark docs create --help
+```
+
 Get Docs (docx) metadata:
 
 ```bash
