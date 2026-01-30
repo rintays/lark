@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"lark/internal/larkapi"
-	"lark/internal/larksdk"
 )
 
 func newMsgCmd(state *appState) *cobra.Command {
@@ -43,17 +42,10 @@ func newMsgSendCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			sendMessage := state.Client.SendMessage
-			if state.SDK != nil {
-				sendMessage = func(ctx context.Context, token string, req larkapi.MessageRequest) (string, error) {
-					messageID, err := state.SDK.SendMessage(ctx, token, req)
-					if errors.Is(err, larksdk.ErrUnavailable) {
-						return state.Client.SendMessage(ctx, token, req)
-					}
-					return messageID, err
-				}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
 			}
-			messageID, err := sendMessage(context.Background(), token, larkapi.MessageRequest{
+			messageID, err := state.SDK.SendMessage(context.Background(), token, larkapi.MessageRequest{
 				ReceiveID:     receiveID,
 				ReceiveIDType: receiveIDType,
 				Text:          text,
