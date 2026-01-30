@@ -130,6 +130,12 @@ Get Docs (docx) metadata:
 lark docs get --doc-id <DOCUMENT_ID>
 ```
 
+Show docs get help:
+
+```bash
+./lark docs get --help
+```
+
 Export a Docs (docx) document to PDF:
 
 ```bash

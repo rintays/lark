@@ -83,6 +83,7 @@ func TestDocsGetCommand(t *testing.T) {
 		if r.URL.Path != "/open-apis/docx/v1/documents/doc1" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
+		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"code": 0,
 			"msg":  "ok",
@@ -96,6 +97,9 @@ func TestDocsGetCommand(t *testing.T) {
 		})
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
+	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("legacy client used for docs get")
+	})}}
 
 	var buf bytes.Buffer
 	state := &appState{
@@ -107,8 +111,13 @@ func TestDocsGetCommand(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
+		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
 
 	cmd := newDocsCmd(state)
 	cmd.SetArgs([]string{"get", "--doc-id", "doc1"})
@@ -223,6 +232,30 @@ func TestDocsExportCommand(t *testing.T) {
 	}
 	if !bytes.Equal(data, exported) {
 		t.Fatalf("unexpected export content: %q", string(data))
+	}
+}
+
+func TestDocsGetCommandRequiresSDK(t *testing.T) {
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    "http://example.com",
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &bytes.Buffer{}},
+		Client:  &larkapi.Client{},
+	}
+
+	cmd := newDocsCmd(state)
+	cmd.SetArgs([]string{"get", "--doc-id", "doc1"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.Error() != "sdk client is required" {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 

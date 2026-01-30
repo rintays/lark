@@ -76,11 +76,14 @@ func newDocsGetCmd(state *appState) *cobra.Command {
 			if documentID == "" {
 				return errors.New("doc-id is required")
 			}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			token, err := ensureTenantToken(context.Background(), state)
 			if err != nil {
 				return err
 			}
-			doc, err := state.Client.GetDocxDocument(context.Background(), token, documentID)
+			doc, err := state.SDK.GetDocxDocument(context.Background(), token, documentID)
 			if err != nil {
 				return err
 			}
