@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/cobra"
 
 	"lark/internal/larkapi"
+	"lark/internal/larksdk"
 )
 
 func newSheetsCmd(state *appState) *cobra.Command {
@@ -51,7 +52,7 @@ func newSheetsReadCmd(state *appState) *cobra.Command {
 				return err
 			}
 			payload := map[string]any{"valueRange": valueRange}
-			text := formatSheetValues(valueRange.Values)
+			text := formatSheetValues(valueRange)
 			return state.Printer.Print(payload, text)
 		},
 	}
@@ -213,7 +214,8 @@ func newSheetsClearCmd(state *appState) *cobra.Command {
 	return cmd
 }
 
-func formatSheetValues(values [][]any) string {
+func formatSheetValues(valueRange larksdk.SheetValueRange) string {
+	values := valueRange.Values
 	if len(values) == 0 {
 		return "no values found"
 	}

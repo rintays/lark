@@ -39,3 +39,5 @@ type ListDriveFilesResult = larkapi.ListDriveFilesResult
 type SearchDriveFilesRequest = larkapi.SearchDriveFilesRequest
 
 type SearchDriveFilesResult = larkapi.SearchDriveFilesResult
+
+type SheetValueRange = larkapi.SheetValueRange
