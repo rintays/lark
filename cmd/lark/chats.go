@@ -8,7 +8,7 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"lark/internal/larkapi"
+	"lark/internal/larksdk"
 )
 
 const maxChatsPageSize = 50
@@ -39,7 +39,7 @@ func newChatsListCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			chats := make([]larkapi.Chat, 0, limit)
+			chats := make([]larksdk.Chat, 0, limit)
 			pageToken := ""
 			remaining := limit
 			listChats := state.SDK.ListChats
@@ -48,7 +48,7 @@ func newChatsListCmd(state *appState) *cobra.Command {
 				if pageSize > maxChatsPageSize {
 					pageSize = maxChatsPageSize
 				}
-				result, err := listChats(context.Background(), token, larkapi.ListChatsRequest{
+				result, err := listChats(context.Background(), token, larksdk.ListChatsRequest{
 					PageSize:  pageSize,
 					PageToken: pageToken,
 				})

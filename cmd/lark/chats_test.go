@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
@@ -49,7 +48,6 @@ func TestChatsListCommand(t *testing.T) {
 				TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 			},
 			Printer: output.Printer{Writer: &buf},
-			Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 		}
 		sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 		if err != nil {
@@ -78,7 +76,6 @@ func TestChatsListCommand(t *testing.T) {
 				TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 			},
 			Printer: output.Printer{Writer: &bytes.Buffer{}},
-			Client:  &larkapi.Client{},
 		}
 
 		cmd := newChatsCmd(state)

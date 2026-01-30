@@ -11,7 +11,6 @@ import (
 	im "github.com/larksuite/oapi-sdk-go/v3/service/im/v1"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
 )
 
 var ErrUnavailable = errors.New("lark sdk unavailable")
@@ -98,13 +97,13 @@ func (c *Client) tenantToken(token string) string {
 	return c.tenantAccessToken
 }
 
-func (c *Client) ListChats(ctx context.Context, token string, req larkapi.ListChatsRequest) (larkapi.ListChatsResult, error) {
+func (c *Client) ListChats(ctx context.Context, token string, req ListChatsRequest) (ListChatsResult, error) {
 	if !c.available() {
-		return larkapi.ListChatsResult{}, ErrUnavailable
+		return ListChatsResult{}, ErrUnavailable
 	}
 	tenantToken := c.tenantToken(token)
 	if tenantToken == "" {
-		return larkapi.ListChatsResult{}, errors.New("tenant access token is required")
+		return ListChatsResult{}, errors.New("tenant access token is required")
 	}
 
 	builder := im.NewListChatReqBuilder()
@@ -120,19 +119,19 @@ func (c *Client) ListChats(ctx context.Context, token string, req larkapi.ListCh
 
 	resp, err := c.sdk.Im.V1.Chat.List(ctx, builder.Build(), larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
-		return larkapi.ListChatsResult{}, err
+		return ListChatsResult{}, err
 	}
 	if resp == nil {
-		return larkapi.ListChatsResult{}, errors.New("list chats failed: empty response")
+		return ListChatsResult{}, errors.New("list chats failed: empty response")
 	}
 	if !resp.Success() {
-		return larkapi.ListChatsResult{}, fmt.Errorf("list chats failed: %s", resp.Msg)
+		return ListChatsResult{}, fmt.Errorf("list chats failed: %s", resp.Msg)
 	}
 
-	result := larkapi.ListChatsResult{}
+	result := ListChatsResult{}
 	if resp.Data != nil {
 		if resp.Data.Items != nil {
-			result.Items = make([]larkapi.Chat, 0, len(resp.Data.Items))
+			result.Items = make([]Chat, 0, len(resp.Data.Items))
 			for _, item := range resp.Data.Items {
 				result.Items = append(result.Items, mapChat(item))
 			}
@@ -147,11 +146,11 @@ func (c *Client) ListChats(ctx context.Context, token string, req larkapi.ListCh
 	return result, nil
 }
 
-func mapChat(chat *im.ListChat) larkapi.Chat {
+func mapChat(chat *im.ListChat) Chat {
 	if chat == nil {
-		return larkapi.Chat{}
+		return Chat{}
 	}
-	result := larkapi.Chat{}
+	result := Chat{}
 	if chat.ChatId != nil {
 		result.ChatID = *chat.ChatId
 	}
