@@ -14,6 +14,10 @@ type CreateExportTaskRequest = larkapi.CreateExportTaskRequest
 
 type ExportTaskResult = larkapi.ExportTaskResult
 
+type DocxDocument = larkapi.DocxDocument
+
+type CreateDocxDocumentRequest = larkapi.CreateDocxDocumentRequest
+
 type Meeting = larkapi.Meeting
 
 type GetMeetingRequest = larkapi.GetMeetingRequest

@@ -11,7 +11,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 )
 
@@ -42,11 +41,14 @@ func newDocsCreateCmd(state *appState) *cobra.Command {
 			if title == "" {
 				return errors.New("title is required")
 			}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			token, err := ensureTenantToken(context.Background(), state)
 			if err != nil {
 				return err
 			}
-			doc, err := state.Client.CreateDocxDocument(context.Background(), token, larkapi.CreateDocxDocumentRequest{
+			doc, err := state.SDK.CreateDocxDocument(context.Background(), token, larksdk.CreateDocxDocumentRequest{
 				Title:       title,
 				FolderToken: folderID,
 			})
