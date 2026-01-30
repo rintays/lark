@@ -1,0 +1,121 @@
+package larkapi
+
+import (
+	"context"
+	"encoding/json"
+	"net/http"
+	"strings"
+	"testing"
+
+	"lark/internal/testutil"
+)
+
+func TestTenantAccessToken(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/auth/v3/tenant_access_token/internal/" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var payload map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["app_id"] != "app" || payload["app_secret"] != "secret" {
+			t.Fatalf("unexpected payload: %+v", payload)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code":                0,
+			"msg":                 "ok",
+			"tenant_access_token": "token",
+			"expire":              7200,
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, AppID: "app", AppSecret: "secret", HTTPClient: httpClient}
+	gotToken, gotExpire, err := client.TenantAccessToken(context.Background())
+	if err != nil {
+		t.Fatalf("TenantAccessToken error: %v", err)
+	}
+	if gotToken != "token" {
+		t.Fatalf("expected token, got %s", gotToken)
+	}
+	if gotExpire != 7200 {
+		t.Fatalf("expected expire 7200, got %d", gotExpire)
+	}
+}
+
+func TestWhoAmI(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/tenant/v2/tenant/query" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"tenant": map[string]string{
+					"tenant_key": "tkey",
+					"name":       "Tenant",
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	info, err := client.WhoAmI(context.Background(), "token")
+	if err != nil {
+		t.Fatalf("WhoAmI error: %v", err)
+	}
+	if info.TenantKey != "tkey" || info.Name != "Tenant" {
+		t.Fatalf("unexpected tenant info: %+v", info)
+	}
+}
+
+func TestSendMessage(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/im/v1/messages" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("receive_id_type") != "chat_id" {
+			t.Fatalf("unexpected query: %s", r.URL.RawQuery)
+		}
+		var payload map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["receive_id"] != "chat" || payload["msg_type"] != "text" {
+			t.Fatalf("unexpected payload: %+v", payload)
+		}
+		if !strings.Contains(payload["content"], "hello") {
+			t.Fatalf("unexpected content: %s", payload["content"])
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]string{"message_id": "mid"},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	messageID, err := client.SendMessage(context.Background(), "token", MessageRequest{ChatID: "chat", Text: "hello"})
+	if err != nil {
+		t.Fatalf("SendMessage error: %v", err)
+	}
+	if messageID != "mid" {
+		t.Fatalf("expected message_id, got %s", messageID)
+	}
+}
