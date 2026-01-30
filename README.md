@@ -31,7 +31,28 @@ lark whoami
 Send a message:
 
 ```bash
-lark msg --chat-id <CHAT_ID> --text "hello"
+lark msg send --chat-id <CHAT_ID> --text "hello"
+```
+
+Send a message to a user by email:
+
+```bash
+lark msg send --receive-id-type email --receive-id user@example.com --text "hello"
+```
+
+List recent chats:
+
+```bash
+lark chats list --limit 10
+```
+
+Search users:
+
+```bash
+lark users search --email user@example.com
+lark users search --mobile "+1-555-0100"
+lark users search --name "Ada"
+lark users search --name "Ada" --department-id 0
 ```
 
 ### Global flags
