@@ -1473,6 +1473,30 @@ type readSheetRangeResponse struct {
 	} `json:"data"`
 }
 
+type SpreadsheetProperties struct {
+	Title      string `json:"title"`
+	OwnerUser  int64  `json:"ownerUser"`
+	SheetCount int    `json:"sheetCount"`
+	Revision   int64  `json:"revision"`
+}
+
+type SpreadsheetSheet struct {
+	SheetID string `json:"sheetId"`
+	Title   string `json:"title"`
+	Index   int    `json:"index"`
+	Hidden  bool   `json:"hidden"`
+}
+
+type SpreadsheetMetadata struct {
+	Properties SpreadsheetProperties `json:"properties"`
+	Sheets     []SpreadsheetSheet    `json:"sheets"`
+}
+
+type spreadsheetMetadataResponse struct {
+	apiResponse
+	Data SpreadsheetMetadata `json:"data"`
+}
+
 func (c *Client) ReadSheetRange(ctx context.Context, token, spreadsheetToken, sheetRange string) (SheetValueRange, error) {
 	if spreadsheetToken == "" {
 		return SheetValueRange{}, fmt.Errorf("spreadsheet token is required")
@@ -1511,4 +1535,41 @@ func (c *Client) ReadSheetRange(ctx context.Context, token, spreadsheetToken, sh
 		return SheetValueRange{}, fmt.Errorf("read sheet range failed: %s", parsed.Msg)
 	}
 	return parsed.Data.ValueRange, nil
+}
+
+func (c *Client) GetSpreadsheetMetadata(ctx context.Context, token, spreadsheetToken string) (SpreadsheetMetadata, error) {
+	if spreadsheetToken == "" {
+		return SpreadsheetMetadata{}, fmt.Errorf("spreadsheet token is required")
+	}
+	path := fmt.Sprintf("/open-apis/sheets/v2/spreadsheets/%s/metainfo", url.PathEscape(spreadsheetToken))
+	endpoint, err := c.endpoint(path, nil)
+	if err != nil {
+		return SpreadsheetMetadata{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return SpreadsheetMetadata{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return SpreadsheetMetadata{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return SpreadsheetMetadata{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return SpreadsheetMetadata{}, fmt.Errorf("get spreadsheet metadata failed: %s", resp.Status)
+	}
+	var parsed spreadsheetMetadataResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return SpreadsheetMetadata{}, err
+	}
+	if parsed.Code != 0 {
+		return SpreadsheetMetadata{}, fmt.Errorf("get spreadsheet metadata failed: %s", parsed.Msg)
+	}
+	return parsed.Data, nil
 }

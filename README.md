@@ -128,6 +128,12 @@ Read a Sheets range:
 lark sheets read --spreadsheet-id <SPREADSHEET_TOKEN> --range "Sheet1!A1:B2"
 ```
 
+Fetch spreadsheet metadata:
+
+```bash
+lark sheets metadata --spreadsheet-id <SPREADSHEET_TOKEN>
+```
+
 List calendar events in a time range:
 
 ```bash

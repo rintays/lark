@@ -1004,3 +1004,40 @@ func TestReadSheetRange(t *testing.T) {
 		t.Fatalf("unexpected value range: %+v", valueRange)
 	}
 }
+
+func TestGetSpreadsheetMetadata(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/sheets/v2/spreadsheets/spreadsheet/metainfo" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"properties": map[string]any{
+					"title": "Budget Q1",
+				},
+				"sheets": []map[string]any{
+					{"sheetId": "s1", "title": "Summary", "index": 0},
+					{"sheetId": "s2", "title": "Details", "index": 1},
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	metadata, err := client.GetSpreadsheetMetadata(context.Background(), "token", "spreadsheet")
+	if err != nil {
+		t.Fatalf("GetSpreadsheetMetadata error: %v", err)
+	}
+	if metadata.Properties.Title != "Budget Q1" || len(metadata.Sheets) != 2 {
+		t.Fatalf("unexpected metadata: %+v", metadata)
+	}
+}

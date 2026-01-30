@@ -7,6 +7,8 @@ import (
 	"strings"
 
 	"github.com/spf13/cobra"
+
+	"lark/internal/larkapi"
 )
 
 func newSheetsCmd(state *appState) *cobra.Command {
@@ -15,6 +17,7 @@ func newSheetsCmd(state *appState) *cobra.Command {
 		Short: "Read Sheets data",
 	}
 	cmd.AddCommand(newSheetsReadCmd(state))
+	cmd.AddCommand(newSheetsMetadataCmd(state))
 	return cmd
 }
 
@@ -51,6 +54,34 @@ func newSheetsReadCmd(state *appState) *cobra.Command {
 	return cmd
 }
 
+func newSheetsMetadataCmd(state *appState) *cobra.Command {
+	var spreadsheetID string
+
+	cmd := &cobra.Command{
+		Use:   "metadata",
+		Short: "Get spreadsheet metadata",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if spreadsheetID == "" {
+				return errors.New("spreadsheet-id is required")
+			}
+			token, err := ensureTenantToken(context.Background(), state)
+			if err != nil {
+				return err
+			}
+			metadata, err := state.Client.GetSpreadsheetMetadata(context.Background(), token, spreadsheetID)
+			if err != nil {
+				return err
+			}
+			payload := map[string]any{"metadata": metadata}
+			text := formatSpreadsheetMetadata(metadata)
+			return state.Printer.Print(payload, text)
+		},
+	}
+
+	cmd.Flags().StringVar(&spreadsheetID, "spreadsheet-id", "", "spreadsheet token")
+	return cmd
+}
+
 func formatSheetValues(values [][]any) string {
 	if len(values) == 0 {
 		return "no values found"
@@ -62,6 +93,22 @@ func formatSheetValues(values [][]any) string {
 			cells = append(cells, fmt.Sprint(cell))
 		}
 		lines = append(lines, strings.Join(cells, "\t"))
+	}
+	return strings.Join(lines, "\n")
+}
+
+func formatSpreadsheetMetadata(metadata larkapi.SpreadsheetMetadata) string {
+	lines := make([]string, 0, len(metadata.Sheets)+1)
+	if title := strings.TrimSpace(metadata.Properties.Title); title != "" {
+		lines = append(lines, title)
+	}
+	for _, sheet := range metadata.Sheets {
+		if name := strings.TrimSpace(sheet.Title); name != "" {
+			lines = append(lines, name)
+		}
+	}
+	if len(lines) == 0 {
+		return "no metadata found"
 	}
 	return strings.Join(lines, "\n")
 }
