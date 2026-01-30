@@ -259,7 +259,7 @@ func parseSheetValues(valuesRaw string) ([][]any, error) {
 	return values, nil
 }
 
-func formatSheetUpdate(update larkapi.SheetValueUpdate, fallbackRange string) string {
+func formatSheetUpdate(update larksdk.SheetValueUpdate, fallbackRange string) string {
 	rangeText := strings.TrimSpace(update.UpdatedRange)
 	if rangeText == "" {
 		rangeText = strings.TrimSpace(fallbackRange)

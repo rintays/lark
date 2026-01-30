@@ -42,6 +42,21 @@ type SearchDriveFilesResult = larkapi.SearchDriveFilesResult
 
 type SheetValueRange = larkapi.SheetValueRange
 
+type SheetValueRangeInput struct {
+	Range          string  `json:"range"`
+	MajorDimension string  `json:"major_dimension,omitempty"`
+	Values         [][]any `json:"values"`
+}
+
+type SheetValueUpdate struct {
+	SpreadsheetToken string `json:"spreadsheetToken"`
+	UpdatedRange     string `json:"updatedRange"`
+	UpdatedRows      int    `json:"updatedRows"`
+	UpdatedColumns   int    `json:"updatedColumns"`
+	UpdatedCells     int    `json:"updatedCells"`
+	Revision         int64  `json:"revision"`
+}
+
 type ClearSheetRangeResult struct {
 	ClearedRange string `json:"clearedRange"`
 }
