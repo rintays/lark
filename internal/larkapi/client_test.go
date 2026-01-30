@@ -111,11 +111,42 @@ func TestSendMessage(t *testing.T) {
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
 	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
-	messageID, err := client.SendMessage(context.Background(), "token", MessageRequest{ChatID: "chat", Text: "hello"})
+	messageID, err := client.SendMessage(context.Background(), "token", MessageRequest{ReceiveID: "chat", Text: "hello"})
 	if err != nil {
 		t.Fatalf("SendMessage error: %v", err)
 	}
 	if messageID != "mid" {
 		t.Fatalf("expected message_id, got %s", messageID)
+	}
+}
+
+func TestSendMessageWithReceiveIDType(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Query().Get("receive_id_type") != "email" {
+			t.Fatalf("unexpected query: %s", r.URL.RawQuery)
+		}
+		var payload map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["receive_id"] != "dev@example.com" {
+			t.Fatalf("unexpected receive_id: %s", payload["receive_id"])
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]string{"message_id": "mid"},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	_, err := client.SendMessage(context.Background(), "token", MessageRequest{
+		ReceiveID:     "dev@example.com",
+		ReceiveIDType: "email",
+		Text:          "hello",
+	})
+	if err != nil {
+		t.Fatalf("SendMessage error: %v", err)
 	}
 }

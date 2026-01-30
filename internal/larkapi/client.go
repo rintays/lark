@@ -137,8 +137,9 @@ func (c *Client) WhoAmI(ctx context.Context, token string) (TenantInfo, error) {
 }
 
 type MessageRequest struct {
-	ChatID string
-	Text   string
+	ReceiveID     string
+	ReceiveIDType string
+	Text          string
 }
 
 type sendMessageResponse struct {
@@ -154,7 +155,7 @@ func (c *Client) SendMessage(ctx context.Context, token string, req MessageReque
 		return "", err
 	}
 	payload := map[string]string{
-		"receive_id": req.ChatID,
+		"receive_id": req.ReceiveID,
 		"msg_type":   "text",
 		"content":    string(content),
 	}
@@ -162,7 +163,11 @@ func (c *Client) SendMessage(ctx context.Context, token string, req MessageReque
 	if err != nil {
 		return "", err
 	}
-	query := url.Values{"receive_id_type": []string{"chat_id"}}
+	receiveIDType := req.ReceiveIDType
+	if receiveIDType == "" {
+		receiveIDType = "chat_id"
+	}
+	query := url.Values{"receive_id_type": []string{receiveIDType}}
 	endpoint, err := c.endpoint("/open-apis/im/v1/messages", query)
 	if err != nil {
 		return "", err
