@@ -38,12 +38,12 @@ func newMsgSendCmd(state *appState) *cobra.Command {
 			if text == "" {
 				return errors.New("text is required")
 			}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			token, err := ensureTenantToken(context.Background(), state)
 			if err != nil {
 				return err
-			}
-			if state.SDK == nil {
-				return errors.New("sdk client is required")
 			}
 			messageID, err := state.SDK.SendMessage(context.Background(), token, larkapi.MessageRequest{
 				ReceiveID:     receiveID,
