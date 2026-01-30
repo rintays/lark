@@ -72,6 +72,80 @@ func TestMailFoldersCommandWithSDK(t *testing.T) {
 	}
 }
 
+func TestMailFoldersCommandUsesDefaultMailboxID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes/mbx_default/folders" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"items": []map[string]any{
+					{
+						"folder_id":   "fld_1",
+						"name":        "Inbox",
+						"folder_type": "INBOX",
+					},
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			DefaultMailboxID:           "mbx_default",
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newMailCmd(state)
+	cmd.SetArgs([]string{"folders"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("mail folders error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "fld_1\tInbox\tINBOX") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestMailFoldersCommandRequiresMailboxID(t *testing.T) {
+	state := &appState{
+		Config:  config.Default(),
+		Printer: output.Printer{Writer: &bytes.Buffer{}},
+	}
+
+	cmd := newMailCmd(state)
+	cmd.SetArgs([]string{"folders"})
+	err := cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.Error() != "mailbox id is required; run lark mail mailbox set --mailbox-id <id>" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestMailMailboxesListCommandWithSDK(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

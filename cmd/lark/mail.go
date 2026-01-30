@@ -12,7 +12,10 @@ import (
 	"lark/internal/larksdk"
 )
 
-const maxMailPageSize = 200
+const (
+	maxMailPageSize        = 200
+	mailboxIDRequiredError = "mailbox id is required; run lark mail mailbox set --mailbox-id <id>"
+)
 
 func newMailCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
@@ -162,6 +165,11 @@ func newMailFoldersCmd(state *appState) *cobra.Command {
 		Use:   "folders",
 		Short: "List mail folders",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			mailboxID, err = resolveMailboxID(state, mailboxID)
+			if err != nil {
+				return err
+			}
 			token, err := ensureTenantToken(context.Background(), state)
 			if err != nil {
 				return err
@@ -187,7 +195,6 @@ func newMailFoldersCmd(state *appState) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID")
-	_ = cmd.MarkFlagRequired("mailbox-id")
 	return cmd
 }
 
@@ -203,6 +210,11 @@ func newMailListCmd(state *appState) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if limit <= 0 {
 				return errors.New("limit must be greater than 0")
+			}
+			var err error
+			mailboxID, err = resolveMailboxID(state, mailboxID)
+			if err != nil {
+				return err
 			}
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
@@ -259,7 +271,6 @@ func newMailListCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&folderID, "folder-id", "", "filter by folder ID")
 	cmd.Flags().IntVar(&limit, "limit", 20, "max number of messages to return")
 	cmd.Flags().BoolVar(&onlyUnread, "only-unread", false, "only return unread messages")
-	_ = cmd.MarkFlagRequired("mailbox-id")
 	return cmd
 }
 
@@ -285,6 +296,11 @@ func newMailGetCmd(state *appState) *cobra.Command {
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			mailboxID, err = resolveMailboxID(state, mailboxID)
+			if err != nil {
+				return err
+			}
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
 			}
@@ -303,7 +319,6 @@ func newMailGetCmd(state *appState) *cobra.Command {
 
 	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID")
 	cmd.Flags().StringVar(&messageID, "message-id", "", "message ID (or provide as positional argument)")
-	_ = cmd.MarkFlagRequired("mailbox-id")
 	_ = cmd.MarkFlagRequired("message-id")
 	return cmd
 }
@@ -324,6 +339,11 @@ func newMailSendCmd(state *appState) *cobra.Command {
 		Use:   "send",
 		Short: "Send an email message",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			var err error
+			mailboxID, err = resolveMailboxID(state, mailboxID)
+			if err != nil {
+				return err
+			}
 			token := userAccessToken
 			if token == "" {
 				token = os.Getenv("LARK_USER_ACCESS_TOKEN")
@@ -365,7 +385,6 @@ func newMailSendCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&bodyHTML, "html", "", "HTML body")
 	cmd.Flags().StringVar(&headFrom, "from-name", "", "display name for From header")
 	cmd.Flags().StringVar(&userAccessToken, "user-access-token", "", "user access token (OAuth)")
-	_ = cmd.MarkFlagRequired("mailbox-id")
 	_ = cmd.MarkFlagRequired("subject")
 	_ = cmd.MarkFlagRequired("to")
 	cmd.MarkFlagsOneRequired("text", "html")
@@ -415,6 +434,16 @@ func formatMailMailboxLine(mailbox larksdk.Mailbox) string {
 		parts = append(parts, address)
 	}
 	return strings.Join(parts, "\t")
+}
+
+func resolveMailboxID(state *appState, mailboxID string) (string, error) {
+	if mailboxID == "" && state != nil && state.Config != nil {
+		mailboxID = state.Config.DefaultMailboxID
+	}
+	if mailboxID == "" {
+		return "", errors.New(mailboxIDRequiredError)
+	}
+	return mailboxID, nil
 }
 
 func buildMailAddressInputs(values []string) []larksdk.MailAddressInput {
