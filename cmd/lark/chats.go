@@ -28,13 +28,17 @@ func newChatsListCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "List recent chats",
-		RunE: func(cmd *cobra.Command, args []string) error {
+		Args:  cobra.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if limit <= 0 {
 				return errors.New("limit must be greater than 0")
 			}
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
 			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
 			token, err := ensureTenantToken(context.Background(), state)
 			if err != nil {
 				return err
