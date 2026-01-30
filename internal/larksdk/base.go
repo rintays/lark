@@ -122,3 +122,62 @@ func (c *Client) ListBaseFields(ctx context.Context, token, appToken, tableID st
 	}
 	return ListBaseFieldsResult{Items: resp.Data.Items, PageToken: resp.Data.PageToken, HasMore: resp.Data.HasMore}, nil
 }
+
+type listBaseViewsResponse struct {
+	*larkcore.ApiResp `json:"-"`
+	larkcore.CodeError
+	Data *listBaseViewsResponseData `json:"data"`
+}
+
+type listBaseViewsResponseData struct {
+	Items     []BaseView `json:"items"`
+	PageToken string     `json:"page_token"`
+	HasMore   bool       `json:"has_more"`
+}
+
+func (r *listBaseViewsResponse) Success() bool { return r.Code == 0 }
+
+func (c *Client) ListBaseViews(ctx context.Context, token, appToken, tableID string) (ListBaseViewsResult, error) {
+	if !c.available() || c.coreConfig == nil {
+		return ListBaseViewsResult{}, ErrUnavailable
+	}
+	tenantToken := c.tenantToken(token)
+	if tenantToken == "" {
+		return ListBaseViewsResult{}, errors.New("tenant access token is required")
+	}
+	if appToken == "" {
+		return ListBaseViewsResult{}, errors.New("app token is required")
+	}
+	if tableID == "" {
+		return ListBaseViewsResult{}, errors.New("table id is required")
+	}
+
+	apiReq := &larkcore.ApiReq{
+		ApiPath:                   "/open-apis/bitable/v1/apps/:app_token/tables/:table_id/views",
+		HttpMethod:                http.MethodGet,
+		PathParams:                larkcore.PathParams{},
+		QueryParams:               larkcore.QueryParams{},
+		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant},
+	}
+	apiReq.PathParams.Set("app_token", appToken)
+	apiReq.PathParams.Set("table_id", tableID)
+
+	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
+	if err != nil {
+		return ListBaseViewsResult{}, err
+	}
+	if apiResp == nil {
+		return ListBaseViewsResult{}, errors.New("list base views failed: empty response")
+	}
+	resp := &listBaseViewsResponse{ApiResp: apiResp}
+	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
+		return ListBaseViewsResult{}, err
+	}
+	if !resp.Success() {
+		return ListBaseViewsResult{}, fmt.Errorf("list base views failed: %s", resp.Msg)
+	}
+	if resp.Data == nil {
+		return ListBaseViewsResult{}, nil
+	}
+	return ListBaseViewsResult{Items: resp.Data.Items, PageToken: resp.Data.PageToken, HasMore: resp.Data.HasMore}, nil
+}

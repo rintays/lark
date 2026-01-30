@@ -16,6 +16,7 @@ func newBaseCmd(state *appState) *cobra.Command {
 	}
 	cmd.AddCommand(newBaseTableCmd(state))
 	cmd.AddCommand(newBaseFieldCmd(state))
+	cmd.AddCommand(newBaseViewCmd(state))
 	return cmd
 }
 
@@ -34,6 +35,15 @@ func newBaseFieldCmd(state *appState) *cobra.Command {
 		Short: "Manage Bitable fields",
 	}
 	cmd.AddCommand(newBaseFieldListCmd(state))
+	return cmd
+}
+
+func newBaseViewCmd(state *appState) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "view",
+		Short: "Manage Bitable views",
+	}
+	cmd.AddCommand(newBaseViewListCmd(state))
 	return cmd
 }
 
@@ -100,6 +110,46 @@ func newBaseFieldListCmd(state *appState) *cobra.Command {
 				lines = append(lines, fmt.Sprintf("%s\t%s\t%d", field.FieldID, field.FieldName, field.Type))
 			}
 			text := "no fields found"
+			if len(lines) > 0 {
+				text = strings.Join(lines, "\n")
+			}
+			return state.Printer.Print(payload, text)
+		},
+	}
+
+	cmd.Flags().StringVar(&appToken, "app-token", "", "Bitable app token")
+	cmd.Flags().StringVar(&tableID, "table-id", "", "Bitable table id")
+	_ = cmd.MarkFlagRequired("app-token")
+	_ = cmd.MarkFlagRequired("table-id")
+	return cmd
+}
+
+func newBaseViewListCmd(state *appState) *cobra.Command {
+	var appToken string
+	var tableID string
+
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List Bitable views",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
+			token, err := ensureTenantToken(context.Background(), state)
+			if err != nil {
+				return err
+			}
+			result, err := state.SDK.ListBaseViews(context.Background(), token, appToken, tableID)
+			if err != nil {
+				return err
+			}
+			views := result.Items
+			payload := map[string]any{"views": views}
+			lines := make([]string, 0, len(views))
+			for _, view := range views {
+				lines = append(lines, fmt.Sprintf("%s\t%s\t%s", view.ViewID, view.Name, view.ViewType))
+			}
+			text := "no views found"
 			if len(lines) > 0 {
 				text = strings.Join(lines, "\n")
 			}

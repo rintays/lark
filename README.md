@@ -241,6 +241,7 @@ Example:
 ./lark mail public-mailboxes list --help
 ./lark base table list --help
 ./lark base field list --help
+./lark base view list --help
 ./lark mail mailbox get --help
 ./lark mail mailbox set --mailbox-id <MAILBOX_ID>
 ```

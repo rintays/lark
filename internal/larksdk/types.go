@@ -118,6 +118,12 @@ type BaseField struct {
 	Type      int    `json:"type"`
 }
 
+type BaseView struct {
+	ViewID   string `json:"view_id"`
+	Name     string `json:"name"`
+	ViewType string `json:"view_type"`
+}
+
 type ListBaseTablesResult struct {
 	Items     []BaseTable `json:"items"`
 	PageToken string      `json:"page_token"`
@@ -128,4 +134,10 @@ type ListBaseFieldsResult struct {
 	Items     []BaseField `json:"items"`
 	PageToken string      `json:"page_token"`
 	HasMore   bool        `json:"has_more"`
+}
+
+type ListBaseViewsResult struct {
+	Items     []BaseView `json:"items"`
+	PageToken string     `json:"page_token"`
+	HasMore   bool       `json:"has_more"`
 }
