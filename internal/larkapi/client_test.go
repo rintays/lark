@@ -329,3 +329,58 @@ func TestListDriveFiles(t *testing.T) {
 		t.Fatalf("unexpected pagination: %+v", result)
 	}
 }
+
+func TestSearchDriveFiles(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/files/search" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["query"] != "budget" {
+			t.Fatalf("unexpected query: %+v", payload)
+		}
+		if payload["page_size"].(float64) != 2 {
+			t.Fatalf("unexpected page_size: %+v", payload)
+		}
+		if payload["page_token"] != "next" {
+			t.Fatalf("unexpected page_token: %+v", payload)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"files": []map[string]any{
+					{"token": "f2", "name": "Budget", "type": "sheet", "url": "https://example.com/sheet"},
+				},
+				"page_token": "token",
+				"has_more":   false,
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	result, err := client.SearchDriveFiles(context.Background(), "token", SearchDriveFilesRequest{
+		Query:     "budget",
+		PageSize:  2,
+		PageToken: "next",
+	})
+	if err != nil {
+		t.Fatalf("SearchDriveFiles error: %v", err)
+	}
+	if len(result.Files) != 1 || result.Files[0].Token != "f2" {
+		t.Fatalf("unexpected files: %+v", result.Files)
+	}
+	if result.HasMore || result.PageToken != "token" {
+		t.Fatalf("unexpected pagination: %+v", result)
+	}
+}

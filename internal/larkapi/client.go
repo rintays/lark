@@ -494,3 +494,75 @@ func (c *Client) ListDriveFiles(ctx context.Context, token string, req ListDrive
 		HasMore:   parsed.Data.HasMore,
 	}, nil
 }
+
+type SearchDriveFilesRequest struct {
+	Query     string
+	PageSize  int
+	PageToken string
+}
+
+type searchDriveFilesResponse struct {
+	apiResponse
+	Data struct {
+		Files     []DriveFile `json:"files"`
+		PageToken string      `json:"page_token"`
+		HasMore   bool        `json:"has_more"`
+	} `json:"data"`
+}
+
+type SearchDriveFilesResult struct {
+	Files     []DriveFile
+	PageToken string
+	HasMore   bool
+}
+
+func (c *Client) SearchDriveFiles(ctx context.Context, token string, req SearchDriveFilesRequest) (SearchDriveFilesResult, error) {
+	payload := map[string]any{
+		"query": req.Query,
+	}
+	if req.PageSize > 0 {
+		payload["page_size"] = req.PageSize
+	}
+	if req.PageToken != "" {
+		payload["page_token"] = req.PageToken
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return SearchDriveFilesResult{}, err
+	}
+	endpoint, err := c.endpoint("/open-apis/drive/v1/files/search", nil)
+	if err != nil {
+		return SearchDriveFilesResult{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return SearchDriveFilesResult{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return SearchDriveFilesResult{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return SearchDriveFilesResult{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return SearchDriveFilesResult{}, fmt.Errorf("search drive files failed: %s", resp.Status)
+	}
+	var parsed searchDriveFilesResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return SearchDriveFilesResult{}, err
+	}
+	if parsed.Code != 0 {
+		return SearchDriveFilesResult{}, fmt.Errorf("search drive files failed: %s", parsed.Msg)
+	}
+	return SearchDriveFilesResult{
+		Files:     parsed.Data.Files,
+		PageToken: parsed.Data.PageToken,
+		HasMore:   parsed.Data.HasMore,
+	}, nil
+}
