@@ -67,6 +67,12 @@ Search Drive files by text:
 lark drive search --query "budget" --limit 10
 ```
 
+Get Drive file metadata:
+
+```bash
+lark drive get <FILE_TOKEN>
+```
+
 Get Drive file URLs:
 
 ```bash

@@ -29,7 +29,7 @@ func TestDriveListCommand(t *testing.T) {
 			"code": 0,
 			"msg":  "ok",
 			"data": map[string]any{
-				"files": []map[string]any{{"token": "f1", "name": "Doc", "type": "docx", "url": "https://example.com/doc"}},
+				"files":    []map[string]any{{"token": "f1", "name": "Doc", "type": "docx", "url": "https://example.com/doc"}},
 				"has_more": false,
 			},
 		})
@@ -79,7 +79,7 @@ func TestDriveSearchCommand(t *testing.T) {
 			"code": 0,
 			"msg":  "ok",
 			"data": map[string]any{
-				"files": []map[string]any{{"token": "f2", "name": "Budget", "type": "sheet", "url": "https://example.com/sheet"}},
+				"files":    []map[string]any{{"token": "f2", "name": "Budget", "type": "sheet", "url": "https://example.com/sheet"}},
 				"has_more": false,
 			},
 		})
@@ -107,6 +107,68 @@ func TestDriveSearchCommand(t *testing.T) {
 
 	if !strings.Contains(buf.String(), "f2\tBudget\tsheet\thttps://example.com/sheet") {
 		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestDriveGetCommand(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/open-apis/drive/v1/files/f1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"file": map[string]any{"token": "f1", "name": "Doc", "type": "docx", "url": "https://example.com/doc"},
+				},
+			})
+		case "/open-apis/drive/v1/files/f2":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"file": map[string]any{"token": "f2", "name": "Sheet", "type": "sheet", "url": "https://example.com/sheet"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	cases := []struct {
+		name     string
+		args     []string
+		expected string
+	}{
+		{name: "arg", args: []string{"get", "f1"}, expected: "f1\tDoc\tdocx\thttps://example.com/doc"},
+		{name: "flag", args: []string{"get", "--file-token", "f2"}, expected: "f2\tSheet\tsheet\thttps://example.com/sheet"},
+	}
+
+	for _, tc := range cases {
+		t.Run(tc.name, func(t *testing.T) {
+			var buf bytes.Buffer
+			state := &appState{
+				Config: &config.Config{
+					AppID:                      "app",
+					AppSecret:                  "secret",
+					BaseURL:                    baseURL,
+					TenantAccessToken:          "token",
+					TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+				},
+				Printer: output.Printer{Writer: &buf},
+				Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
+			}
+
+			cmd := newDriveCmd(state)
+			cmd.SetArgs(tc.args)
+			if err := cmd.Execute(); err != nil {
+				t.Fatalf("drive get error: %v", err)
+			}
+
+			if !strings.Contains(buf.String(), tc.expected) {
+				t.Fatalf("unexpected output: %q", buf.String())
+			}
+		})
 	}
 }
 

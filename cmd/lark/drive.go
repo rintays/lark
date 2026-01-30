@@ -20,6 +20,7 @@ func newDriveCmd(state *appState) *cobra.Command {
 	}
 	cmd.AddCommand(newDriveListCmd(state))
 	cmd.AddCommand(newDriveSearchCmd(state))
+	cmd.AddCommand(newDriveGetCmd(state))
 	cmd.AddCommand(newDriveURLsCmd(state))
 	return cmd
 }
@@ -148,6 +149,41 @@ func newDriveSearchCmd(state *appState) *cobra.Command {
 
 	cmd.Flags().StringVar(&query, "query", "", "search text")
 	cmd.Flags().IntVar(&limit, "limit", 50, "max number of files to return")
+	return cmd
+}
+
+func newDriveGetCmd(state *appState) *cobra.Command {
+	var fileToken string
+
+	cmd := &cobra.Command{
+		Use:   "get <file-token>",
+		Short: "Get Drive file metadata",
+		Args:  cobra.MaximumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if len(args) > 0 {
+				if fileToken != "" && fileToken != args[0] {
+					return errors.New("file-token provided twice")
+				}
+				fileToken = args[0]
+			}
+			if fileToken == "" {
+				return errors.New("file-token is required")
+			}
+			token, err := ensureTenantToken(context.Background(), state)
+			if err != nil {
+				return err
+			}
+			file, err := state.Client.GetDriveFileMetadata(context.Background(), token, fileToken)
+			if err != nil {
+				return err
+			}
+			payload := map[string]any{"file": file}
+			text := fmt.Sprintf("%s\t%s\t%s\t%s", file.Token, file.Name, file.FileType, file.URL)
+			return state.Printer.Print(payload, text)
+		},
+	}
+
+	cmd.Flags().StringVar(&fileToken, "file-token", "", "Drive file token")
 	return cmd
 }
 

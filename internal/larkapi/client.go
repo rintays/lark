@@ -930,7 +930,7 @@ type getDriveFileResponse struct {
 	} `json:"data"`
 }
 
-func (c *Client) GetDriveFile(ctx context.Context, token, fileToken string) (DriveFile, error) {
+func (c *Client) GetDriveFileMetadata(ctx context.Context, token, fileToken string) (DriveFile, error) {
 	if fileToken == "" {
 		return DriveFile{}, fmt.Errorf("file token is required")
 	}
@@ -964,6 +964,10 @@ func (c *Client) GetDriveFile(ctx context.Context, token, fileToken string) (Dri
 		return DriveFile{}, fmt.Errorf("get drive file failed: %s", parsed.Msg)
 	}
 	return parsed.Data.File, nil
+}
+
+func (c *Client) GetDriveFile(ctx context.Context, token, fileToken string) (DriveFile, error) {
+	return c.GetDriveFileMetadata(ctx, token, fileToken)
 }
 
 type DocxDocument struct {

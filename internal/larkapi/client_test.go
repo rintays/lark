@@ -610,6 +610,42 @@ func TestSearchDriveFiles(t *testing.T) {
 	}
 }
 
+func TestGetDriveFileMetadata(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/files/fmeta" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"file": map[string]any{
+					"token": "fmeta",
+					"name":  "Metadata Doc",
+					"type":  "docx",
+					"url":   "https://example.com/meta",
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	file, err := client.GetDriveFileMetadata(context.Background(), "token", "fmeta")
+	if err != nil {
+		t.Fatalf("GetDriveFileMetadata error: %v", err)
+	}
+	if file.Token != "fmeta" || file.URL != "https://example.com/meta" {
+		t.Fatalf("unexpected file: %+v", file)
+	}
+}
+
 func TestGetDriveFile(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
