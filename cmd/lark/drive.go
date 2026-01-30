@@ -183,7 +183,7 @@ func newDriveGetCmd(state *appState) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&fileToken, "file-token", "", "Drive file token")
+	cmd.Flags().StringVar(&fileToken, "file-token", "", "Drive file token (or provide as positional argument)")
 	return cmd
 }
 

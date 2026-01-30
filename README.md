@@ -71,6 +71,7 @@ Get Drive file metadata:
 
 ```bash
 lark drive get <FILE_TOKEN>
+lark drive get --file-token <FILE_TOKEN>
 ```
 
 Get Drive file URLs:
