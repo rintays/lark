@@ -191,7 +191,17 @@ func newDriveGetCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			file, err := state.Client.GetDriveFileMetadata(context.Background(), token, fileToken)
+			getDriveFile := state.Client.GetDriveFileMetadata
+			if state.SDK != nil {
+				getDriveFile = func(ctx context.Context, token, fileToken string) (larkapi.DriveFile, error) {
+					file, err := state.SDK.GetDriveFileMetadata(ctx, token, fileToken)
+					if errors.Is(err, larksdk.ErrUnavailable) {
+						return state.Client.GetDriveFileMetadata(ctx, token, fileToken)
+					}
+					return file, err
+				}
+			}
+			file, err := getDriveFile(context.Background(), token, fileToken)
 			if err != nil {
 				return err
 			}
