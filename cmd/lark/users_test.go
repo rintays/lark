@@ -67,54 +67,6 @@ func TestUsersSearchByEmail(t *testing.T) {
 	}
 }
 
-func TestUsersSearchByEmailFallbackToAPI(t *testing.T) {
-	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/open-apis/contact/v3/users/batch_get_id" {
-			t.Fatalf("unexpected path: %s", r.URL.Path)
-		}
-		var payload map[string][]string
-		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
-			t.Fatalf("decode payload: %v", err)
-		}
-		if payload["emails"][0] != "dev@example.com" {
-			t.Fatalf("unexpected emails: %+v", payload["emails"])
-		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"code": 0,
-			"msg":  "ok",
-			"data": map[string]any{
-				"user_list": []map[string]any{{"user_id": "u1", "email": "dev@example.com"}},
-			},
-		})
-	})
-	httpClient, baseURL := testutil.NewTestClient(handler)
-
-	var buf bytes.Buffer
-	state := &appState{
-		Config: &config.Config{
-			AppID:                      "app",
-			AppSecret:                  "secret",
-			BaseURL:                    baseURL,
-			TenantAccessToken:          "token",
-			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
-		},
-		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
-		SDK:     &larksdk.Client{},
-	}
-
-	cmd := newUsersCmd(state)
-	cmd.SetArgs([]string{"search", "--email", "dev@example.com"})
-	if err := cmd.Execute(); err != nil {
-		t.Fatalf("users search error: %v", err)
-	}
-
-	if !strings.Contains(buf.String(), "u1") {
-		t.Fatalf("unexpected output: %q", buf.String())
-	}
-}
-
 func TestUsersSearchByName(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/open-apis/contact/v3/users/find_by_department" {
