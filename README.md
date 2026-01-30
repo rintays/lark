@@ -103,6 +103,13 @@ Create a calendar event:
 lark calendar create --summary "Weekly Sync" --start "2026-01-02T03:04:05Z" --end "2026-01-02T04:04:05Z" --attendee dev@example.com
 ```
 
+Get a contact user:
+
+```bash
+lark contacts user get --open-id <OPEN_ID>
+lark contacts user get --user-id <USER_ID>
+```
+
 ### Global flags
 
 - `--config` override the config path.
