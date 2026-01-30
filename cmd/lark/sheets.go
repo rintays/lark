@@ -10,7 +10,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"lark/internal/larkapi"
-	"lark/internal/larksdk"
 )
 
 func newSheetsCmd(state *appState) *cobra.Command {
@@ -44,17 +43,10 @@ func newSheetsReadCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			readSheetRange := state.Client.ReadSheetRange
-			if state.SDK != nil {
-				readSheetRange = func(ctx context.Context, token, spreadsheetToken, sheetRange string) (larkapi.SheetValueRange, error) {
-					valueRange, err := state.SDK.ReadSheetRange(ctx, token, spreadsheetToken, sheetRange)
-					if errors.Is(err, larksdk.ErrUnavailable) {
-						return state.Client.ReadSheetRange(ctx, token, spreadsheetToken, sheetRange)
-					}
-					return valueRange, err
-				}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
 			}
-			valueRange, err := readSheetRange(context.Background(), token, spreadsheetID, sheetRange)
+			valueRange, err := state.SDK.ReadSheetRange(context.Background(), token, spreadsheetID, sheetRange)
 			if err != nil {
 				return err
 			}
@@ -120,17 +112,10 @@ func newSheetsUpdateCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			updateSheetRange := state.Client.UpdateSheetRange
-			if state.SDK != nil {
-				updateSheetRange = func(ctx context.Context, token, spreadsheetToken, sheetRange string, values [][]any) (larkapi.SheetValueUpdate, error) {
-					update, err := state.SDK.UpdateSheetRange(ctx, token, spreadsheetToken, sheetRange, values)
-					if errors.Is(err, larksdk.ErrUnavailable) {
-						return state.Client.UpdateSheetRange(ctx, token, spreadsheetToken, sheetRange, values)
-					}
-					return update, err
-				}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
 			}
-			update, err := updateSheetRange(context.Background(), token, spreadsheetID, sheetRange, values)
+			update, err := state.SDK.UpdateSheetRange(context.Background(), token, spreadsheetID, sheetRange, values)
 			if err != nil {
 				return err
 			}
@@ -170,17 +155,10 @@ func newSheetsAppendCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			appendSheetRange := state.Client.AppendSheetRange
-			if state.SDK != nil {
-				appendSheetRange = func(ctx context.Context, token, spreadsheetToken, sheetRange string, values [][]any, insertDataOption string) (larkapi.SheetValueAppend, error) {
-					appendResult, err := state.SDK.AppendSheetRange(ctx, token, spreadsheetToken, sheetRange, values, insertDataOption)
-					if errors.Is(err, larksdk.ErrUnavailable) {
-						return state.Client.AppendSheetRange(ctx, token, spreadsheetToken, sheetRange, values, insertDataOption)
-					}
-					return appendResult, err
-				}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
 			}
-			appendResult, err := appendSheetRange(context.Background(), token, spreadsheetID, sheetRange, values, insertDataOption)
+			appendResult, err := state.SDK.AppendSheetRange(context.Background(), token, spreadsheetID, sheetRange, values, insertDataOption)
 			if err != nil {
 				return err
 			}
@@ -215,17 +193,10 @@ func newSheetsClearCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			clearSheetRange := state.Client.ClearSheetRange
-			if state.SDK != nil {
-				clearSheetRange = func(ctx context.Context, token, spreadsheetToken, sheetRange string) (string, error) {
-					clearedRange, err := state.SDK.ClearSheetRange(ctx, token, spreadsheetToken, sheetRange)
-					if errors.Is(err, larksdk.ErrUnavailable) {
-						return state.Client.ClearSheetRange(ctx, token, spreadsheetToken, sheetRange)
-					}
-					return clearedRange, err
-				}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
 			}
-			clearedRange, err := clearSheetRange(context.Background(), token, spreadsheetID, sheetRange)
+			clearedRange, err := state.SDK.ClearSheetRange(context.Background(), token, spreadsheetID, sheetRange)
 			if err != nil {
 				return err
 			}
