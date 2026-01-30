@@ -169,6 +169,100 @@ func TestListCalendarEvents(t *testing.T) {
 	}
 }
 
+func TestCreateCalendarEvent(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/calendar/v4/calendars/cal_1/events" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["summary"] != "Demo" {
+			t.Fatalf("unexpected summary: %+v", payload["summary"])
+		}
+		start := payload["start_time"].(map[string]any)
+		if start["timestamp"] != "1700000000" {
+			t.Fatalf("unexpected start_time: %+v", payload["start_time"])
+		}
+		end := payload["end_time"].(map[string]any)
+		if end["timestamp"] != "1700003600" {
+			t.Fatalf("unexpected end_time: %+v", payload["end_time"])
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"event": map[string]any{
+					"event_id": "evt_1",
+					"summary":  "Demo",
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	event, err := client.CreateCalendarEvent(context.Background(), "token", CreateCalendarEventRequest{
+		CalendarID: "cal_1",
+		Summary:    "Demo",
+		StartTime:  1700000000,
+		EndTime:    1700003600,
+	})
+	if err != nil {
+		t.Fatalf("CreateCalendarEvent error: %v", err)
+	}
+	if event.EventID != "evt_1" || event.Summary != "Demo" {
+		t.Fatalf("unexpected event: %+v", event)
+	}
+}
+
+func TestCreateCalendarEventAttendees(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/calendar/v4/calendars/cal_1/events/evt_1/attendees" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		attendees := payload["attendees"].([]any)
+		first := attendees[0].(map[string]any)
+		if first["type"] != "third_party" || first["third_party_email"] != "dev@example.com" {
+			t.Fatalf("unexpected attendee: %+v", first)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	err := client.CreateCalendarEventAttendees(context.Background(), "token", CreateCalendarEventAttendeesRequest{
+		CalendarID: "cal_1",
+		EventID:    "evt_1",
+		Attendees: []CalendarEventAttendee{
+			{Type: "third_party", ThirdPartyEmail: "dev@example.com"},
+		},
+	})
+	if err != nil {
+		t.Fatalf("CreateCalendarEventAttendees error: %v", err)
+	}
+}
+
 func TestSendMessage(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {

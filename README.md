@@ -97,6 +97,12 @@ List calendar events in a time range:
 lark calendar list --start "2026-01-02T03:04:05Z" --end "2026-01-02T04:04:05Z" --limit 20
 ```
 
+Create a calendar event:
+
+```bash
+lark calendar create --summary "Weekly Sync" --start "2026-01-02T03:04:05Z" --end "2026-01-02T04:04:05Z" --attendee dev@example.com
+```
+
 ### Global flags
 
 - `--config` override the config path.

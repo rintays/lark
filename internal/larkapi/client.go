@@ -290,6 +290,156 @@ func (c *Client) ListCalendarEvents(ctx context.Context, token string, req ListC
 	}, nil
 }
 
+type CreateCalendarEventRequest struct {
+	CalendarID  string
+	Summary     string
+	Description string
+	StartTime   int64
+	EndTime     int64
+}
+
+type createCalendarEventResponse struct {
+	apiResponse
+	Data struct {
+		Event   CalendarEvent `json:"event"`
+		EventID string        `json:"event_id"`
+	} `json:"data"`
+}
+
+func (c *Client) CreateCalendarEvent(ctx context.Context, token string, req CreateCalendarEventRequest) (CalendarEvent, error) {
+	if req.CalendarID == "" {
+		return CalendarEvent{}, fmt.Errorf("calendar id is required")
+	}
+	if req.Summary == "" {
+		return CalendarEvent{}, fmt.Errorf("summary is required")
+	}
+	if req.StartTime == 0 || req.EndTime == 0 {
+		return CalendarEvent{}, fmt.Errorf("start and end times are required")
+	}
+	payload := map[string]any{
+		"summary": req.Summary,
+		"start_time": map[string]string{
+			"timestamp": fmt.Sprintf("%d", req.StartTime),
+		},
+		"end_time": map[string]string{
+			"timestamp": fmt.Sprintf("%d", req.EndTime),
+		},
+	}
+	if req.Description != "" {
+		payload["description"] = req.Description
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return CalendarEvent{}, err
+	}
+	endpoint, err := c.endpoint("/open-apis/calendar/v4/calendars/"+url.PathEscape(req.CalendarID)+"/events", nil)
+	if err != nil {
+		return CalendarEvent{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return CalendarEvent{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return CalendarEvent{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return CalendarEvent{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return CalendarEvent{}, fmt.Errorf("create calendar event failed: %s", resp.Status)
+	}
+	var parsed createCalendarEventResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return CalendarEvent{}, err
+	}
+	if parsed.Code != 0 {
+		return CalendarEvent{}, fmt.Errorf("create calendar event failed: %s", parsed.Msg)
+	}
+	event := parsed.Data.Event
+	if event.EventID == "" {
+		event.EventID = parsed.Data.EventID
+	}
+	if event.EventID == "" {
+		return CalendarEvent{}, fmt.Errorf("create calendar event response missing event_id")
+	}
+	return event, nil
+}
+
+type CalendarEventAttendee struct {
+	Type            string `json:"type,omitempty"`
+	UserID          string `json:"user_id,omitempty"`
+	ChatID          string `json:"chat_id,omitempty"`
+	RoomID          string `json:"room_id,omitempty"`
+	ThirdPartyEmail string `json:"third_party_email,omitempty"`
+}
+
+type CreateCalendarEventAttendeesRequest struct {
+	CalendarID string
+	EventID    string
+	Attendees  []CalendarEventAttendee
+}
+
+type createCalendarEventAttendeesResponse struct {
+	apiResponse
+}
+
+func (c *Client) CreateCalendarEventAttendees(ctx context.Context, token string, req CreateCalendarEventAttendeesRequest) error {
+	if req.CalendarID == "" {
+		return fmt.Errorf("calendar id is required")
+	}
+	if req.EventID == "" {
+		return fmt.Errorf("event id is required")
+	}
+	if len(req.Attendees) == 0 {
+		return fmt.Errorf("attendees are required")
+	}
+	payload := map[string]any{
+		"attendees": req.Attendees,
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return err
+	}
+	endpoint, err := c.endpoint("/open-apis/calendar/v4/calendars/"+url.PathEscape(req.CalendarID)+"/events/"+url.PathEscape(req.EventID)+"/attendees", nil)
+	if err != nil {
+		return err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return fmt.Errorf("create calendar event attendees failed: %s", resp.Status)
+	}
+	var parsed createCalendarEventAttendeesResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return err
+	}
+	if parsed.Code != 0 {
+		return fmt.Errorf("create calendar event attendees failed: %s", parsed.Msg)
+	}
+	return nil
+}
+
 type MessageRequest struct {
 	ReceiveID     string
 	ReceiveIDType string
