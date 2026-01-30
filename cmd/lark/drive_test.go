@@ -3,7 +3,10 @@ package main
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 	"testing"
 	"time"
@@ -280,6 +283,110 @@ func TestDriveShareCommand(t *testing.T) {
 	}
 
 	if !strings.Contains(buf.String(), "f1\tdocx\ttenant_readable\ttrue\tfalse") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestDriveUploadCommand(t *testing.T) {
+	tmpFile, err := os.CreateTemp("", "lark-upload-*.txt")
+	if err != nil {
+		t.Fatalf("create temp file: %v", err)
+	}
+	defer os.Remove(tmpFile.Name())
+	content := []byte("hello upload")
+	if _, err := tmpFile.Write(content); err != nil {
+		t.Fatalf("write temp file: %v", err)
+	}
+	if err := tmpFile.Close(); err != nil {
+		t.Fatalf("close temp file: %v", err)
+	}
+
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/open-apis/drive/v1/files/upload_all":
+			if r.Method != http.MethodPost {
+				t.Fatalf("expected POST, got %s", r.Method)
+			}
+			if !strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data; boundary=") {
+				t.Fatalf("unexpected content type: %s", r.Header.Get("Content-Type"))
+			}
+			if err := r.ParseMultipartForm(4 << 20); err != nil {
+				t.Fatalf("parse multipart: %v", err)
+			}
+			if r.FormValue("file_name") != "report.txt" {
+				t.Fatalf("unexpected file_name: %s", r.FormValue("file_name"))
+			}
+			if r.FormValue("parent_type") != "explorer" {
+				t.Fatalf("unexpected parent_type: %s", r.FormValue("parent_type"))
+			}
+			if r.FormValue("parent_node") != "fld_123" {
+				t.Fatalf("unexpected parent_node: %s", r.FormValue("parent_node"))
+			}
+			if r.FormValue("size") != fmt.Sprintf("%d", len(content)) {
+				t.Fatalf("unexpected size: %s", r.FormValue("size"))
+			}
+			files := r.MultipartForm.File["file"]
+			if len(files) != 1 {
+				t.Fatalf("expected 1 file part, got %d", len(files))
+			}
+			part, err := files[0].Open()
+			if err != nil {
+				t.Fatalf("open file part: %v", err)
+			}
+			defer part.Close()
+			data, err := io.ReadAll(part)
+			if err != nil {
+				t.Fatalf("read file part: %v", err)
+			}
+			if string(data) != string(content) {
+				t.Fatalf("unexpected file content: %q", string(data))
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"file_token": "file_123",
+				},
+			})
+		case "/open-apis/drive/v1/files/file_123":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"file": map[string]any{
+						"token": "file_123",
+						"name":  "report.txt",
+						"type":  "file",
+						"url":   "https://example.com/file",
+					},
+				},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
+	}
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"upload", "--file", tmpFile.Name(), "--folder-token", "fld_123", "--name", "report.txt"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive upload error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "file_123\treport.txt\tfile\thttps://example.com/file") {
 		t.Fatalf("unexpected output: %q", buf.String())
 	}
 }

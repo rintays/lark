@@ -86,6 +86,12 @@ Update Drive share permissions:
 lark drive share <FILE_TOKEN> --type docx --link-share tenant_readable --external-access
 ```
 
+Upload a file to Drive:
+
+```bash
+lark drive upload --file ./report.pdf --folder-token <FOLDER_TOKEN> --name "report.pdf"
+```
+
 Create a Docs (docx) document:
 
 ```bash

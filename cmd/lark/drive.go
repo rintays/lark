@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -21,6 +23,7 @@ func newDriveCmd(state *appState) *cobra.Command {
 	cmd.AddCommand(newDriveListCmd(state))
 	cmd.AddCommand(newDriveSearchCmd(state))
 	cmd.AddCommand(newDriveGetCmd(state))
+	cmd.AddCommand(newDriveUploadCmd(state))
 	cmd.AddCommand(newDriveURLsCmd(state))
 	cmd.AddCommand(newDriveShareCmd(state))
 	return cmd
@@ -185,6 +188,79 @@ func newDriveGetCmd(state *appState) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&fileToken, "file-token", "", "Drive file token (or provide as positional argument)")
+	return cmd
+}
+
+func newDriveUploadCmd(state *appState) *cobra.Command {
+	var filePath string
+	var folderToken string
+	var uploadName string
+
+	cmd := &cobra.Command{
+		Use:   "upload --file <path>",
+		Short: "Upload a local file to Drive",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if filePath == "" {
+				return errors.New("file path is required")
+			}
+			info, err := os.Stat(filePath)
+			if err != nil {
+				return err
+			}
+			if info.IsDir() {
+				return fmt.Errorf("file path is a directory: %s", filePath)
+			}
+			if uploadName == "" {
+				uploadName = filepath.Base(filePath)
+			}
+			file, err := os.Open(filePath)
+			if err != nil {
+				return err
+			}
+			defer file.Close()
+			token, err := ensureTenantToken(context.Background(), state)
+			if err != nil {
+				return err
+			}
+			result, err := state.Client.UploadDriveFile(context.Background(), token, larkapi.UploadDriveFileRequest{
+				FileName:    uploadName,
+				FolderToken: folderToken,
+				Size:        info.Size(),
+				File:        file,
+			})
+			if err != nil {
+				return err
+			}
+			fileToken := result.FileToken
+			fileInfo := result.File
+			if fileInfo.Token == "" {
+				fileInfo.Token = fileToken
+			}
+			if fileInfo.Token == "" {
+				return errors.New("upload response missing file token")
+			}
+			if fileInfo.Name == "" || fileInfo.FileType == "" || fileInfo.URL == "" {
+				meta, err := state.Client.GetDriveFileMetadata(context.Background(), token, fileInfo.Token)
+				if err != nil {
+					return err
+				}
+				fileInfo = meta
+			}
+			payload := map[string]any{
+				"file_token": fileInfo.Token,
+				"file":       fileInfo,
+			}
+			text := fileInfo.Token
+			if fileInfo.URL != "" {
+				text = fmt.Sprintf("%s\t%s\t%s\t%s", fileInfo.Token, fileInfo.Name, fileInfo.FileType, fileInfo.URL)
+			}
+			return state.Printer.Print(payload, text)
+		},
+	}
+
+	cmd.Flags().StringVar(&filePath, "file", "", "path to local file")
+	cmd.Flags().StringVar(&folderToken, "folder-token", "", "Drive folder token (default: root)")
+	cmd.Flags().StringVar(&uploadName, "name", "", "override the uploaded file name")
 	return cmd
 }
 
