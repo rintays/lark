@@ -201,3 +201,80 @@ func TestListChats(t *testing.T) {
 		t.Fatalf("unexpected pagination: %+v", result)
 	}
 }
+
+func TestBatchGetUserIDs(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("expected POST, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/contact/v3/users/batch_get_id" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var payload map[string][]string
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["emails"][0] != "dev@example.com" {
+			t.Fatalf("unexpected emails: %+v", payload["emails"])
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"user_list": []map[string]any{
+					{"user_id": "u1", "email": "dev@example.com"},
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	users, err := client.BatchGetUserIDs(context.Background(), "token", BatchGetUserIDRequest{
+		Emails: []string{"dev@example.com"},
+	})
+	if err != nil {
+		t.Fatalf("BatchGetUserIDs error: %v", err)
+	}
+	if len(users) != 1 || users[0].UserID != "u1" {
+		t.Fatalf("unexpected users: %+v", users)
+	}
+}
+
+func TestListUsersByDepartment(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/contact/v3/users/find_by_department" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("department_id") != "0" {
+			t.Fatalf("unexpected department_id: %s", r.URL.Query().Get("department_id"))
+		}
+		if r.URL.Query().Get("page_size") != "1" {
+			t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"items":    []map[string]any{{"user_id": "u1", "name": "Ada Lovelace"}},
+				"has_more": false,
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	result, err := client.ListUsersByDepartment(context.Background(), "token", ListUsersByDepartmentRequest{
+		DepartmentID: "0",
+		PageSize:     1,
+	})
+	if err != nil {
+		t.Fatalf("ListUsersByDepartment error: %v", err)
+	}
+	if len(result.Items) != 1 || result.Items[0].Name != "Ada Lovelace" {
+		t.Fatalf("unexpected users: %+v", result.Items)
+	}
+}

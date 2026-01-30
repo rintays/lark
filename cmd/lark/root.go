@@ -61,6 +61,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newWhoamiCmd(state))
 	cmd.AddCommand(newMsgCmd(state))
 	cmd.AddCommand(newChatsCmd(state))
+	cmd.AddCommand(newUsersCmd(state))
 
 	return cmd
 }

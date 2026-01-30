@@ -279,3 +279,140 @@ func (c *Client) ListChats(ctx context.Context, token string, req ListChatsReque
 		HasMore:   parsed.Data.HasMore,
 	}, nil
 }
+
+type User struct {
+	UserID string `json:"user_id"`
+	OpenID string `json:"open_id"`
+	Name   string `json:"name"`
+	Email  string `json:"email"`
+	Mobile string `json:"mobile"`
+}
+
+type BatchGetUserIDRequest struct {
+	Emails  []string
+	Mobiles []string
+}
+
+type batchGetUserIDResponse struct {
+	apiResponse
+	Data struct {
+		UserList []User `json:"user_list"`
+	} `json:"data"`
+}
+
+func (c *Client) BatchGetUserIDs(ctx context.Context, token string, req BatchGetUserIDRequest) ([]User, error) {
+	payload := map[string]any{}
+	if len(req.Emails) > 0 {
+		payload["emails"] = req.Emails
+	}
+	if len(req.Mobiles) > 0 {
+		payload["mobiles"] = req.Mobiles
+	}
+	body, err := json.Marshal(payload)
+	if err != nil {
+		return nil, err
+	}
+	endpoint, err := c.endpoint("/open-apis/contact/v3/users/batch_get_id", nil)
+	if err != nil {
+		return nil, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodPost, endpoint, bytes.NewReader(body))
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+	request.Header.Set("Content-Type", "application/json")
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return nil, fmt.Errorf("batch get user ids failed: %s", resp.Status)
+	}
+	var parsed batchGetUserIDResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return nil, err
+	}
+	if parsed.Code != 0 {
+		return nil, fmt.Errorf("batch get user ids failed: %s", parsed.Msg)
+	}
+	return parsed.Data.UserList, nil
+}
+
+type ListUsersByDepartmentRequest struct {
+	DepartmentID string
+	PageSize     int
+	PageToken    string
+	UserIDType   string
+}
+
+type listUsersByDepartmentResponse struct {
+	apiResponse
+	Data struct {
+		Items     []User `json:"items"`
+		PageToken string `json:"page_token"`
+		HasMore   bool   `json:"has_more"`
+	} `json:"data"`
+}
+
+type ListUsersByDepartmentResult struct {
+	Items     []User
+	PageToken string
+	HasMore   bool
+}
+
+func (c *Client) ListUsersByDepartment(ctx context.Context, token string, req ListUsersByDepartmentRequest) (ListUsersByDepartmentResult, error) {
+	query := url.Values{}
+	if req.DepartmentID != "" {
+		query.Set("department_id", req.DepartmentID)
+	}
+	if req.PageSize > 0 {
+		query.Set("page_size", fmt.Sprintf("%d", req.PageSize))
+	}
+	if req.PageToken != "" {
+		query.Set("page_token", req.PageToken)
+	}
+	if req.UserIDType != "" {
+		query.Set("user_id_type", req.UserIDType)
+	}
+	endpoint, err := c.endpoint("/open-apis/contact/v3/users/find_by_department", query)
+	if err != nil {
+		return ListUsersByDepartmentResult{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return ListUsersByDepartmentResult{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return ListUsersByDepartmentResult{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ListUsersByDepartmentResult{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return ListUsersByDepartmentResult{}, fmt.Errorf("list users failed: %s", resp.Status)
+	}
+	var parsed listUsersByDepartmentResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return ListUsersByDepartmentResult{}, err
+	}
+	if parsed.Code != 0 {
+		return ListUsersByDepartmentResult{}, fmt.Errorf("list users failed: %s", parsed.Msg)
+	}
+	return ListUsersByDepartmentResult{
+		Items:     parsed.Data.Items,
+		PageToken: parsed.Data.PageToken,
+		HasMore:   parsed.Data.HasMore,
+	}, nil
+}
