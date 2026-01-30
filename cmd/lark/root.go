@@ -78,6 +78,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newMinutesCmd(state))
 	cmd.AddCommand(newContactsCmd(state))
 	cmd.AddCommand(newMailCmd(state))
+	cmd.AddCommand(newWikiCmd(state))
 
 	return cmd
 }
