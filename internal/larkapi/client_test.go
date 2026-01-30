@@ -278,3 +278,54 @@ func TestListUsersByDepartment(t *testing.T) {
 		t.Fatalf("unexpected users: %+v", result.Items)
 	}
 }
+
+func TestListDriveFiles(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/files" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("folder_token") != "fld" {
+			t.Fatalf("unexpected folder_token: %s", r.URL.Query().Get("folder_token"))
+		}
+		if r.URL.Query().Get("page_size") != "2" {
+			t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
+		}
+		if r.URL.Query().Get("page_token") != "next" {
+			t.Fatalf("unexpected page_token: %s", r.URL.Query().Get("page_token"))
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"files": []map[string]any{
+					{"token": "f1", "name": "Doc", "type": "docx", "url": "https://example.com/doc"},
+				},
+				"page_token": "token",
+				"has_more":   true,
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	result, err := client.ListDriveFiles(context.Background(), "token", ListDriveFilesRequest{
+		FolderToken: "fld",
+		PageSize:    2,
+		PageToken:   "next",
+	})
+	if err != nil {
+		t.Fatalf("ListDriveFiles error: %v", err)
+	}
+	if len(result.Files) != 1 || result.Files[0].Token != "f1" {
+		t.Fatalf("unexpected files: %+v", result.Files)
+	}
+	if !result.HasMore || result.PageToken != "token" {
+		t.Fatalf("unexpected pagination: %+v", result)
+	}
+}

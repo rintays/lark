@@ -416,3 +416,81 @@ func (c *Client) ListUsersByDepartment(ctx context.Context, token string, req Li
 		HasMore:   parsed.Data.HasMore,
 	}, nil
 }
+
+type DriveFile struct {
+	Token     string `json:"token"`
+	Name      string `json:"name"`
+	FileType  string `json:"type"`
+	URL       string `json:"url"`
+	ParentID  string `json:"parent_token"`
+	OwnerID   string `json:"owner_id"`
+	OwnerType string `json:"owner_id_type"`
+}
+
+type ListDriveFilesRequest struct {
+	FolderToken string
+	PageSize    int
+	PageToken   string
+}
+
+type listDriveFilesResponse struct {
+	apiResponse
+	Data struct {
+		Files     []DriveFile `json:"files"`
+		PageToken string      `json:"page_token"`
+		HasMore   bool        `json:"has_more"`
+	} `json:"data"`
+}
+
+type ListDriveFilesResult struct {
+	Files     []DriveFile
+	PageToken string
+	HasMore   bool
+}
+
+func (c *Client) ListDriveFiles(ctx context.Context, token string, req ListDriveFilesRequest) (ListDriveFilesResult, error) {
+	query := url.Values{}
+	if req.FolderToken != "" {
+		query.Set("folder_token", req.FolderToken)
+	}
+	if req.PageSize > 0 {
+		query.Set("page_size", fmt.Sprintf("%d", req.PageSize))
+	}
+	if req.PageToken != "" {
+		query.Set("page_token", req.PageToken)
+	}
+	endpoint, err := c.endpoint("/open-apis/drive/v1/files", query)
+	if err != nil {
+		return ListDriveFilesResult{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return ListDriveFilesResult{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return ListDriveFilesResult{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return ListDriveFilesResult{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return ListDriveFilesResult{}, fmt.Errorf("list drive files failed: %s", resp.Status)
+	}
+	var parsed listDriveFilesResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return ListDriveFilesResult{}, err
+	}
+	if parsed.Code != 0 {
+		return ListDriveFilesResult{}, fmt.Errorf("list drive files failed: %s", parsed.Msg)
+	}
+	return ListDriveFilesResult{
+		Files:     parsed.Data.Files,
+		PageToken: parsed.Data.PageToken,
+		HasMore:   parsed.Data.HasMore,
+	}, nil
+}
