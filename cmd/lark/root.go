@@ -67,6 +67,7 @@ func newRootCmd() *cobra.Command {
 	cmd.AddCommand(newSheetsCmd(state))
 	cmd.AddCommand(newCalendarCmd(state))
 	cmd.AddCommand(newContactsCmd(state))
+	cmd.AddCommand(newMailCmd(state))
 
 	return cmd
 }
