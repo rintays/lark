@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"encoding/json"
 	"io"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
+	"time"
 
 	"lark/internal/config"
 	"lark/internal/output"
@@ -57,5 +60,34 @@ func TestAuthLoginWritesConfig(t *testing.T) {
 	}
 	if saved.TenantAccessTokenExpiresAt != 123 {
 		t.Fatalf("expected token expiry preserved, got %d", saved.TenantAccessTokenExpiresAt)
+	}
+}
+
+func TestAuthPrintsTokenAndExpiry(t *testing.T) {
+	var buf bytes.Buffer
+	state := &appState{
+		ConfigPath: filepath.Join(t.TempDir(), "config.json"),
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			TenantAccessToken:          "cached",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+
+	cmd := newAuthCmd(state)
+	cmd.SetArgs([]string{})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("auth error: %v", err)
+	}
+
+	got := buf.String()
+	if !strings.Contains(got, "tenant_access_token: cached") {
+		t.Fatalf("expected token in output, got %q", got)
+	}
+	if !strings.Contains(got, "expires_at:") {
+		t.Fatalf("expected expires_at in output, got %q", got)
 	}
 }

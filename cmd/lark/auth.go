@@ -22,7 +22,10 @@ func newAuthCmd(state *appState) *cobra.Command {
 				"tenant_access_token": token,
 				"expires_at":          state.Config.TenantAccessTokenExpiresAt,
 			}
-			return state.Printer.Print(payload, fmt.Sprintf("tenant_access_token: %s", token))
+			return state.Printer.Print(
+				payload,
+				fmt.Sprintf("tenant_access_token: %s\nexpires_at: %d", token, state.Config.TenantAccessTokenExpiresAt),
+			)
 		},
 	}
 	cmd.AddCommand(newAuthLoginCmd(state))
