@@ -1,9 +1,9 @@
 # lark — Feishu/Lark in your terminal
 
-Fast, script-friendly CLI for **Feishu (飞书)** / **Lark**. Inspired by `gog`.
+Fast, script-friendly CLI for **Feishu (飞书)** / **Lark**.
 
 - **JSON-first output** (`--json`) for scripting
-- **gog-like command layout** (top-level product areas → subcommands)
+- Consistent command layout (top-level product areas → subcommands)
 - **SDK-first** implementation using the official `oapi-sdk-go` (with `core.ApiReq` for gaps)
 
 > Status: actively developed. See “Not implemented yet / TODO” at the bottom.
