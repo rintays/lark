@@ -11,7 +11,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 )
 
@@ -487,11 +486,14 @@ func newDriveShareCmd(state *appState) *cobra.Command {
 				commentEntity == "" {
 				return errors.New("at least one permission field is required")
 			}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			token, err := ensureTenantToken(context.Background(), state)
 			if err != nil {
 				return err
 			}
-			req := larkapi.UpdateDrivePermissionPublicRequest{
+			req := larksdk.UpdateDrivePermissionPublicRequest{
 				LinkShareEntity: linkShare,
 				ShareEntity:     shareEntity,
 				SecurityEntity:  securityEntity,
@@ -503,7 +505,7 @@ func newDriveShareCmd(state *appState) *cobra.Command {
 			if cmd.Flags().Changed("invite-external") {
 				req.InviteExternal = &inviteExternal
 			}
-			permission, err := state.Client.UpdateDrivePermissionPublic(context.Background(), token, fileToken, fileType, req)
+			permission, err := state.SDK.UpdateDrivePermissionPublic(context.Background(), token, fileToken, fileType, req)
 			if err != nil {
 				return err
 			}

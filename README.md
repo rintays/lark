@@ -112,6 +112,12 @@ Update Drive share permissions:
 lark drive share <FILE_TOKEN> --type docx --link-share tenant_readable --external-access
 ```
 
+Show drive share update help:
+
+```bash
+./lark drive share update --help
+```
+
 Upload a file to Drive:
 
 ```bash
