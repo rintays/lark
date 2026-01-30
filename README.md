@@ -116,6 +116,12 @@ Export a Docs (docx) document to PDF:
 lark docs export --doc-id <DOCUMENT_ID> --format pdf --out ./document.pdf
 ```
 
+Print a Docs (docx) document as text or Markdown:
+
+```bash
+lark docs cat --doc-id <DOCUMENT_ID> --format txt
+```
+
 Read a Sheets range:
 
 ```bash

@@ -26,6 +26,7 @@ func newDocsCmd(state *appState) *cobra.Command {
 	cmd.AddCommand(newDocsCreateCmd(state))
 	cmd.AddCommand(newDocsGetCmd(state))
 	cmd.AddCommand(newDocsExportCmd(state))
+	cmd.AddCommand(newDocsCatCmd(state))
 	return cmd
 }
 
@@ -157,6 +158,71 @@ func newDocsExportCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&documentID, "doc-id", "", "document ID")
 	cmd.Flags().StringVar(&format, "format", "", "export format (pdf)")
 	cmd.Flags().StringVar(&outPath, "out", "", "output file path")
+	return cmd
+}
+
+func newDocsCatCmd(state *appState) *cobra.Command {
+	var documentID string
+	var format string
+
+	cmd := &cobra.Command{
+		Use:   "cat --doc-id <DOCUMENT_ID> [--format txt|md]",
+		Short: "Print Docs (docx) document content",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if documentID == "" {
+				return errors.New("doc-id is required")
+			}
+			format = strings.ToLower(strings.TrimSpace(format))
+			if format == "" {
+				format = "txt"
+			}
+			switch format {
+			case "txt", "md":
+			default:
+				return fmt.Errorf("format must be txt or md")
+			}
+			token, err := ensureTenantToken(context.Background(), state)
+			if err != nil {
+				return err
+			}
+			ticket, err := state.Client.CreateExportTask(context.Background(), token, larkapi.CreateExportTaskRequest{
+				Token:         documentID,
+				Type:          "docx",
+				FileExtension: format,
+			})
+			if err != nil {
+				return err
+			}
+			result, err := pollExportTask(context.Background(), state.Client, token, ticket)
+			if err != nil {
+				return err
+			}
+			reader, err := state.Client.DownloadExportedFile(context.Background(), token, result.FileToken)
+			if err != nil {
+				return err
+			}
+			defer reader.Close()
+			if state.JSON {
+				content, err := io.ReadAll(reader)
+				if err != nil {
+					return err
+				}
+				payload := map[string]any{
+					"document_id": documentID,
+					"format":      format,
+					"file_token":  result.FileToken,
+					"file_name":   result.FileName,
+					"content":     string(content),
+				}
+				return state.Printer.Print(payload, "")
+			}
+			_, err = io.Copy(state.Printer.Writer, reader)
+			return err
+		},
+	}
+
+	cmd.Flags().StringVar(&documentID, "doc-id", "", "document ID")
+	cmd.Flags().StringVar(&format, "format", "txt", "output format (txt or md)")
 	return cmd
 }
 
