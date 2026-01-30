@@ -39,6 +39,9 @@ func TestMsgSendCommandRequiresSDK(t *testing.T) {
 
 func TestMsgSendCommandWithSDK(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodPost {
+			t.Fatalf("unexpected method: %s", r.Method)
+		}
 		if r.URL.Path != "/open-apis/im/v1/messages" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
@@ -95,6 +98,39 @@ func TestMsgSendCommandWithSDK(t *testing.T) {
 
 	if !strings.Contains(buf.String(), "message_id: m1") {
 		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestMsgSendMissingTextDoesNotCallHTTP(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &bytes.Buffer{}},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newMsgCmd(state)
+	cmd.SetArgs([]string{"send", "--receive-id", "ou_123"})
+	err = cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "text") {
+		t.Fatalf("unexpected error: %v", err)
 	}
 }
 
