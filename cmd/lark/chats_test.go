@@ -16,22 +16,52 @@ import (
 
 func TestChatsListCommand(t *testing.T) {
 	t.Run("uses sdk client", func(t *testing.T) {
+		callCount := 0
 		handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			callCount++
 			if r.URL.Path != "/open-apis/im/v1/chats" {
 				t.Fatalf("unexpected path: %s", r.URL.Path)
-			}
-			if r.URL.Query().Get("page_size") != "2" {
-				t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
 			}
 			if r.Header.Get("Authorization") != "Bearer token" {
 				t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
 			}
+			query := r.URL.Query()
+			switch callCount {
+			case 1:
+				if query.Get("page_size") != "3" {
+					t.Fatalf("unexpected page_size: %s", query.Get("page_size"))
+				}
+				if _, ok := query["page_token"]; ok {
+					t.Fatalf("unexpected page_token on first request: %q", query.Get("page_token"))
+				}
+			case 2:
+				if query.Get("page_size") != "1" {
+					t.Fatalf("unexpected page_size: %s", query.Get("page_size"))
+				}
+				if query.Get("page_token") != "next" {
+					t.Fatalf("unexpected page_token: %s", query.Get("page_token"))
+				}
+			default:
+				t.Fatalf("unexpected call count: %d", callCount)
+			}
 			w.Header().Set("Content-Type", "application/json")
+			if callCount == 1 {
+				_ = json.NewEncoder(w).Encode(map[string]any{
+					"code": 0,
+					"msg":  "ok",
+					"data": map[string]any{
+						"items":      []map[string]any{{"chat_id": "c1", "name": "Chat One"}, {"chat_id": "c2", "name": "Chat Two"}},
+						"has_more":   true,
+						"page_token": "next",
+					},
+				})
+				return
+			}
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"msg":  "ok",
 				"data": map[string]any{
-					"items":    []map[string]any{{"chat_id": "c1", "name": "Chat One"}},
+					"items":    []map[string]any{{"chat_id": "c3", "name": "Chat Three"}},
 					"has_more": false,
 				},
 			})
@@ -56,12 +86,21 @@ func TestChatsListCommand(t *testing.T) {
 		state.SDK = sdkClient
 
 		cmd := newChatsCmd(state)
-		cmd.SetArgs([]string{"list", "--limit", "2"})
+		cmd.SetArgs([]string{"list", "--limit", "3"})
 		if err := cmd.Execute(); err != nil {
 			t.Fatalf("chats list error: %v", err)
 		}
 
+		if callCount != 2 {
+			t.Fatalf("expected 2 requests, got %d", callCount)
+		}
 		if !strings.Contains(buf.String(), "c1\tChat One") {
+			t.Fatalf("unexpected output: %q", buf.String())
+		}
+		if !strings.Contains(buf.String(), "c2\tChat Two") {
+			t.Fatalf("unexpected output: %q", buf.String())
+		}
+		if !strings.Contains(buf.String(), "c3\tChat Three") {
 			t.Fatalf("unexpected output: %q", buf.String())
 		}
 	})
