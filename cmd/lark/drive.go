@@ -234,7 +234,10 @@ func newDriveUploadCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, err := state.Client.UploadDriveFile(context.Background(), token, larkapi.UploadDriveFileRequest{
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
+			result, err := state.SDK.UploadDriveFile(context.Background(), token, larksdk.UploadDriveFileRequest{
 				FileName:    uploadName,
 				FolderToken: folderToken,
 				Size:        info.Size(),
@@ -252,7 +255,7 @@ func newDriveUploadCmd(state *appState) *cobra.Command {
 				return errors.New("upload response missing file token")
 			}
 			if fileInfo.Name == "" || fileInfo.FileType == "" || fileInfo.URL == "" {
-				meta, err := state.Client.GetDriveFileMetadata(context.Background(), token, fileInfo.Token)
+				meta, err := state.SDK.GetDriveFileMetadata(context.Background(), token, larksdk.GetDriveFileRequest{FileToken: fileInfo.Token})
 				if err != nil {
 					return err
 				}

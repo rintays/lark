@@ -32,6 +32,10 @@ type DriveFile = larkapi.DriveFile
 
 type GetDriveFileRequest = larkapi.GetDriveFileRequest
 
+type UploadDriveFileRequest = larkapi.UploadDriveFileRequest
+
+type DriveUploadResult = larkapi.DriveUploadResult
+
 type ListDriveFilesRequest = larkapi.ListDriveFilesRequest
 
 type ListDriveFilesResult = larkapi.ListDriveFilesResult
