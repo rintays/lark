@@ -106,7 +106,19 @@ func ensureTenantToken(ctx context.Context, state *appState) (string, error) {
 	if state.Verbose {
 		fmt.Fprintln(state.Printer.Writer, "refreshing tenant access token")
 	}
-	token, expiresIn, err := state.Client.TenantAccessToken(ctx)
+	var (
+		token     string
+		expiresIn int64
+		err       error
+	)
+	switch {
+	case state.SDK != nil:
+		token, expiresIn, err = state.SDK.TenantAccessToken(ctx)
+	case state.Client != nil:
+		token, expiresIn, err = state.Client.TenantAccessToken(ctx)
+	default:
+		return "", errors.New("auth client is required")
+	}
 	if err != nil {
 		return "", err
 	}

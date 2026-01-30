@@ -14,6 +14,7 @@ import (
 
 	"lark/internal/config"
 	"lark/internal/larkapi"
+	"lark/internal/larksdk"
 	"lark/internal/testutil"
 )
 
@@ -74,6 +75,69 @@ func TestEnsureTenantTokenRefreshesAndSaves(t *testing.T) {
 	_, err := ensureTenantToken(context.Background(), state)
 	if err != nil {
 		t.Fatalf("ensureTenantToken error: %v", err)
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	var saved config.Config
+	if err := json.Unmarshal(data, &saved); err != nil {
+		t.Fatalf("unmarshal config: %v", err)
+	}
+	if saved.TenantAccessToken != "fresh" {
+		t.Fatalf("expected token saved, got %s", saved.TenantAccessToken)
+	}
+	if saved.TenantAccessTokenExpiresAt == 0 {
+		t.Fatalf("expected expiry saved")
+	}
+}
+
+func TestEnsureTenantTokenRefreshesWithSDK(t *testing.T) {
+	called := false
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		called = true
+		if r.URL.Path != "/open-apis/auth/v3/tenant_access_token/internal" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		var payload map[string]string
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		if payload["app_id"] != "app" || payload["app_secret"] != "secret" {
+			t.Fatalf("unexpected credentials: %v", payload)
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code":                0,
+			"msg":                 "ok",
+			"tenant_access_token": "fresh",
+			"expire":              3600,
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	state := &appState{
+		ConfigPath: configPath,
+		Config: &config.Config{
+			AppID:     "app",
+			AppSecret: "secret",
+			BaseURL:   baseURL,
+		},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	_, err = ensureTenantToken(context.Background(), state)
+	if err != nil {
+		t.Fatalf("ensureTenantToken error: %v", err)
+	}
+	if !called {
+		t.Fatalf("expected SDK tenant token request")
 	}
 
 	data, err := os.ReadFile(configPath)
