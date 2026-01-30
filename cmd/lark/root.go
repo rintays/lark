@@ -11,6 +11,7 @@ import (
 
 	"lark/internal/config"
 	"lark/internal/larkapi"
+	"lark/internal/larksdk"
 	"lark/internal/output"
 )
 
@@ -21,6 +22,7 @@ type appState struct {
 	Verbose    bool
 	Printer    output.Printer
 	Client     *larkapi.Client
+	SDK        *larksdk.Client
 }
 
 func newRootCmd() *cobra.Command {
@@ -47,6 +49,12 @@ func newRootCmd() *cobra.Command {
 				BaseURL:   cfg.BaseURL,
 				AppID:     cfg.AppID,
 				AppSecret: cfg.AppSecret,
+			}
+			sdkClient, err := larksdk.New(cfg)
+			if err == nil {
+				state.SDK = sdkClient
+			} else if state.Verbose {
+				fmt.Fprintf(state.Printer.Writer, "SDK disabled: %v\n", err)
 			}
 			return nil
 		},

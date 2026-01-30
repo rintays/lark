@@ -39,12 +39,16 @@ func newChatsListCmd(state *appState) *cobra.Command {
 			chats := make([]larkapi.Chat, 0, limit)
 			pageToken := ""
 			remaining := limit
+			listChats := state.Client.ListChats
+			if state.SDK != nil {
+				listChats = state.SDK.ListChats
+			}
 			for {
 				pageSize := remaining
 				if pageSize > maxChatsPageSize {
 					pageSize = maxChatsPageSize
 				}
-				result, err := state.Client.ListChats(context.Background(), token, larkapi.ListChatsRequest{
+				result, err := listChats(context.Background(), token, larkapi.ListChatsRequest{
 					PageSize:  pageSize,
 					PageToken: pageToken,
 				})

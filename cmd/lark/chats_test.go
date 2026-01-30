@@ -10,6 +10,7 @@ import (
 
 	"lark/internal/config"
 	"lark/internal/larkapi"
+	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
 )
@@ -22,6 +23,10 @@ func TestChatsListCommand(t *testing.T) {
 		if r.URL.Query().Get("page_size") != "2" {
 			t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
 		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
 			"code": 0,
 			"msg":  "ok",
@@ -45,6 +50,11 @@ func TestChatsListCommand(t *testing.T) {
 		Printer: output.Printer{Writer: &buf},
 		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
 
 	cmd := newChatsCmd(state)
 	cmd.SetArgs([]string{"list", "--limit", "2"})
