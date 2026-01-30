@@ -309,6 +309,9 @@ func TestDriveUploadCommand(t *testing.T) {
 			if r.Method != http.MethodPost {
 				t.Fatalf("expected POST, got %s", r.Method)
 			}
+			if r.Header.Get("Authorization") != "Bearer token" {
+				t.Fatalf("missing auth header")
+			}
 			if !strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data; boundary=") {
 				t.Fatalf("unexpected content type: %s", r.Header.Get("Content-Type"))
 			}
@@ -351,6 +354,7 @@ func TestDriveUploadCommand(t *testing.T) {
 				},
 			})
 		case "/open-apis/drive/v1/files/file_123":
+			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
 				"code": 0,
 				"msg":  "ok",
@@ -379,8 +383,12 @@ func TestDriveUploadCommand(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
 
 	cmd := newDriveCmd(state)
 	cmd.SetArgs([]string{"upload", "--file", tmpFile.Name(), "--folder-token", "fld_123", "--name", "report.txt"})

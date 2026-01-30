@@ -112,6 +112,12 @@ Upload a file to Drive:
 lark drive upload --file ./report.pdf --folder-token <FOLDER_TOKEN> --name "report.pdf"
 ```
 
+Show drive upload help:
+
+```bash
+./lark drive upload --help
+```
+
 Create a Docs (docx) document:
 
 ```bash
