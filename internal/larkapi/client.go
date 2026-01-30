@@ -895,6 +895,10 @@ type DriveFile struct {
 	OwnerType string `json:"owner_id_type"`
 }
 
+type GetDriveFileRequest struct {
+	FileToken string
+}
+
 type UploadDriveFileRequest struct {
 	FileName    string
 	FolderToken string

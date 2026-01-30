@@ -75,43 +75,43 @@ func (r *getDriveFileResponse) Success() bool {
 	return r.Code == 0
 }
 
-func (c *Client) GetDriveFileMetadata(ctx context.Context, token, fileToken string) (larkapi.DriveFile, error) {
+func (c *Client) GetDriveFileMetadata(ctx context.Context, token string, req GetDriveFileRequest) (DriveFile, error) {
 	if !c.available() || c.coreConfig == nil {
-		return larkapi.DriveFile{}, ErrUnavailable
+		return DriveFile{}, ErrUnavailable
 	}
-	if fileToken == "" {
-		return larkapi.DriveFile{}, errors.New("file token is required")
+	if req.FileToken == "" {
+		return DriveFile{}, errors.New("file token is required")
 	}
 	tenantToken := c.tenantToken(token)
 	if tenantToken == "" {
-		return larkapi.DriveFile{}, errors.New("tenant access token is required")
+		return DriveFile{}, errors.New("tenant access token is required")
 	}
 
-	req := &larkcore.ApiReq{
+	apiReq := &larkcore.ApiReq{
 		ApiPath:                   "/open-apis/drive/v1/files/:file_token",
 		HttpMethod:                http.MethodGet,
 		PathParams:                larkcore.PathParams{},
 		QueryParams:               larkcore.QueryParams{},
 		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant, larkcore.AccessTokenTypeUser},
 	}
-	req.PathParams.Set("file_token", fileToken)
+	apiReq.PathParams.Set("file_token", req.FileToken)
 
-	apiResp, err := larkcore.Request(ctx, req, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
+	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
-		return larkapi.DriveFile{}, err
+		return DriveFile{}, err
 	}
 	if apiResp == nil {
-		return larkapi.DriveFile{}, errors.New("get drive file failed: empty response")
+		return DriveFile{}, errors.New("get drive file failed: empty response")
 	}
 	resp := &getDriveFileResponse{ApiResp: apiResp}
 	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
-		return larkapi.DriveFile{}, err
+		return DriveFile{}, err
 	}
 	if !resp.Success() {
-		return larkapi.DriveFile{}, fmt.Errorf("get drive file failed: %s", resp.Msg)
+		return DriveFile{}, fmt.Errorf("get drive file failed: %s", resp.Msg)
 	}
 	if resp.Data == nil || resp.Data.File == nil {
-		return larkapi.DriveFile{}, nil
+		return DriveFile{}, nil
 	}
 	return mapDriveFile(resp.Data.File), nil
 }
