@@ -40,6 +40,7 @@ func WithTenantAccessToken(token string) Option {
 
 type Client struct {
 	sdk               *lark.Client
+	coreConfig        *larkcore.Config
 	tenantAccessToken string
 }
 
@@ -58,15 +59,29 @@ func New(cfg *config.Config, opts ...Option) (*Client, error) {
 	clientOptions := []lark.ClientOptionFunc{
 		lark.WithEnableTokenCache(false),
 	}
+	coreConfig := &larkcore.Config{
+		BaseUrl:          lark.FeishuBaseUrl,
+		AppId:            cfg.AppID,
+		AppSecret:        cfg.AppSecret,
+		EnableTokenCache: false,
+		AppType:          larkcore.AppTypeSelfBuilt,
+	}
 	if cfg.BaseURL != "" {
 		clientOptions = append(clientOptions, lark.WithOpenBaseUrl(cfg.BaseURL))
+		coreConfig.BaseUrl = cfg.BaseURL
 	}
 	if settings.httpClient != nil {
 		clientOptions = append(clientOptions, lark.WithHttpClient(settings.httpClient))
+		coreConfig.HttpClient = settings.httpClient
 	}
 
+	larkcore.NewLogger(coreConfig)
+	larkcore.NewCache(coreConfig)
+	larkcore.NewSerialization(coreConfig)
+	larkcore.NewHttpClient(coreConfig)
+
 	sdk := lark.NewClient(cfg.AppID, cfg.AppSecret, clientOptions...)
-	return &Client{sdk: sdk, tenantAccessToken: settings.tenantAccessToken}, nil
+	return &Client{sdk: sdk, coreConfig: coreConfig, tenantAccessToken: settings.tenantAccessToken}, nil
 }
 
 func (c *Client) available() bool {
