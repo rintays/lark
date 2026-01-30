@@ -201,35 +201,36 @@ func (c *Client) ListMailFolders(ctx context.Context, token, mailboxID string) (
 	return resp.Data.Items, nil
 }
 
-func (c *Client) ListMailboxes(ctx context.Context, token string) ([]Mailbox, error) {
+func (c *Client) ListPublicMailboxes(ctx context.Context, token string) ([]Mailbox, error) {
 	if !c.available() || c.coreConfig == nil {
 		return nil, ErrUnavailable
 	}
-	if token == "" {
-		return nil, errors.New("user access token is required")
+	tenantToken := c.tenantToken(token)
+	if tenantToken == "" {
+		return nil, errors.New("tenant access token is required")
 	}
 
 	req := &larkcore.ApiReq{
-		ApiPath:                   "/open-apis/mail/v1/user_mailboxes",
+		ApiPath:                   "/open-apis/mail/v1/public_mailboxes",
 		HttpMethod:                http.MethodGet,
 		PathParams:                larkcore.PathParams{},
 		QueryParams:               larkcore.QueryParams{},
-		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeUser},
+		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant},
 	}
 
-	apiResp, err := larkcore.Request(ctx, req, c.coreConfig, larkcore.WithUserAccessToken(token))
+	apiResp, err := larkcore.Request(ctx, req, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
 		return nil, err
 	}
 	if apiResp == nil {
-		return nil, errors.New("list mailboxes failed: empty response")
+		return nil, errors.New("list public mailboxes failed: empty response")
 	}
 	resp := &listMailboxesResponse{ApiResp: apiResp}
 	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
 		return nil, err
 	}
 	if !resp.Success() {
-		return nil, fmt.Errorf("list mailboxes failed: %s", resp.Msg)
+		return nil, fmt.Errorf("list public mailboxes failed: %s", resp.Msg)
 	}
 	if resp.Data == nil || resp.Data.Items == nil {
 		return nil, nil

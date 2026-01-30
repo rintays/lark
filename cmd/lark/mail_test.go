@@ -146,15 +146,15 @@ func TestMailFoldersCommandRequiresMailboxID(t *testing.T) {
 	}
 }
 
-func TestMailMailboxesListCommandWithSDK(t *testing.T) {
+func TestMailPublicMailboxesListCommandWithSDK(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {
 			t.Fatalf("expected GET, got %s", r.Method)
 		}
-		if r.URL.Path != "/open-apis/mail/v1/user_mailboxes" {
+		if r.URL.Path != "/open-apis/mail/v1/public_mailboxes" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Header.Get("Authorization") != "Bearer user-token" {
+		if r.Header.Get("Authorization") != "Bearer token" {
 			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -165,8 +165,8 @@ func TestMailMailboxesListCommandWithSDK(t *testing.T) {
 				"items": []map[string]any{
 					{
 						"mailbox_id":    "mbx_1",
-						"name":          "Primary",
-						"primary_email": "dev@example.com",
+						"name":          "Public",
+						"primary_email": "public@example.com",
 					},
 				},
 			},
@@ -192,12 +192,12 @@ func TestMailMailboxesListCommandWithSDK(t *testing.T) {
 	state.SDK = sdkClient
 
 	cmd := newMailCmd(state)
-	cmd.SetArgs([]string{"mailboxes", "list", "--user-access-token", "user-token"})
+	cmd.SetArgs([]string{"public-mailboxes", "list"})
 	if err := cmd.Execute(); err != nil {
-		t.Fatalf("mail mailboxes list error: %v", err)
+		t.Fatalf("mail public-mailboxes list error: %v", err)
 	}
 
-	if !strings.Contains(buf.String(), "mbx_1\tPrimary\tdev@example.com") {
+	if !strings.Contains(buf.String(), "mbx_1\tPublic\tpublic@example.com") {
 		t.Fatalf("unexpected output: %q", buf.String())
 	}
 }
