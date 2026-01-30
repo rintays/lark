@@ -128,6 +128,9 @@ func TestDocsExportCommand(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer token" {
 			t.Fatalf("missing auth header")
 		}
+		if r.URL.RawQuery != "" {
+			t.Fatalf("unexpected query: %q", r.URL.RawQuery)
+		}
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/open-apis/drive/v1/export_tasks":
 			w.Header().Set("Content-Type", "application/json")
@@ -152,6 +155,7 @@ func TestDocsExportCommand(t *testing.T) {
 				},
 			})
 		case r.Method == http.MethodGet && r.URL.Path == "/open-apis/drive/v1/export_tasks/ticket1":
+			w.Header().Set("Content-Type", "application/json")
 			pollCount++
 			result := map[string]any{
 				"file_extension": "pdf",
@@ -251,6 +255,9 @@ func TestDocsCatCommand(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer token" {
 			t.Fatalf("missing auth header")
+		}
+		if r.URL.RawQuery != "" {
+			t.Fatalf("unexpected query: %q", r.URL.RawQuery)
 		}
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/open-apis/drive/v1/export_tasks":

@@ -11,6 +11,7 @@ import (
 	"net/url"
 
 	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
+	larkdrive "github.com/larksuite/oapi-sdk-go/v3/service/drive/v1"
 )
 
 type createExportTaskResponse struct {
@@ -42,7 +43,7 @@ func (r *getExportTaskResponse) Success() bool {
 }
 
 func (c *Client) CreateExportTask(ctx context.Context, token string, req CreateExportTaskRequest) (string, error) {
-	if !c.available() || c.coreConfig == nil {
+	if c == nil || c.coreConfig == nil {
 		return "", ErrUnavailable
 	}
 	if req.Token == "" {
@@ -58,7 +59,39 @@ func (c *Client) CreateExportTask(ctx context.Context, token string, req CreateE
 	if tenantToken == "" {
 		return "", errors.New("tenant access token is required")
 	}
+	if c.exportTaskSDKAvailable() {
+		return c.createExportTaskSDK(ctx, tenantToken, req)
+	}
+	return c.createExportTaskCore(ctx, tenantToken, req)
+}
 
+func (c *Client) createExportTaskSDK(ctx context.Context, tenantToken string, req CreateExportTaskRequest) (string, error) {
+	task := larkdrive.NewExportTaskBuilder().
+		Token(req.Token).
+		Type(req.Type).
+		FileExtension(req.FileExtension).
+		Build()
+	resp, err := c.sdk.Drive.V1.ExportTask.Create(
+		ctx,
+		larkdrive.NewCreateExportTaskReqBuilder().ExportTask(task).Build(),
+		larkcore.WithTenantAccessToken(tenantToken),
+	)
+	if err != nil {
+		return "", err
+	}
+	if resp == nil {
+		return "", errors.New("create export task failed: empty response")
+	}
+	if !resp.Success() {
+		return "", fmt.Errorf("create export task failed: %s", resp.Msg)
+	}
+	if resp.Data == nil || resp.Data.Ticket == nil || *resp.Data.Ticket == "" {
+		return "", errors.New("export task response missing ticket")
+	}
+	return *resp.Data.Ticket, nil
+}
+
+func (c *Client) createExportTaskCore(ctx context.Context, tenantToken string, req CreateExportTaskRequest) (string, error) {
 	payload := map[string]any{
 		"token":          req.Token,
 		"type":           req.Type,
@@ -95,7 +128,7 @@ func (c *Client) CreateExportTask(ctx context.Context, token string, req CreateE
 }
 
 func (c *Client) GetExportTask(ctx context.Context, token, ticket string) (ExportTaskResult, error) {
-	if !c.available() || c.coreConfig == nil {
+	if c == nil || c.coreConfig == nil {
 		return ExportTaskResult{}, ErrUnavailable
 	}
 	if ticket == "" {
@@ -105,7 +138,31 @@ func (c *Client) GetExportTask(ctx context.Context, token, ticket string) (Expor
 	if tenantToken == "" {
 		return ExportTaskResult{}, errors.New("tenant access token is required")
 	}
+	if c.exportTaskSDKAvailable() {
+		return c.getExportTaskSDK(ctx, tenantToken, ticket)
+	}
+	return c.getExportTaskCore(ctx, tenantToken, ticket)
+}
 
+func (c *Client) getExportTaskSDK(ctx context.Context, tenantToken, ticket string) (ExportTaskResult, error) {
+	req := larkdrive.NewGetExportTaskReqBuilder().Ticket(ticket).Build()
+	resp, err := c.sdk.Drive.V1.ExportTask.Get(ctx, req, larkcore.WithTenantAccessToken(tenantToken))
+	if err != nil {
+		return ExportTaskResult{}, err
+	}
+	if resp == nil {
+		return ExportTaskResult{}, errors.New("get export task failed: empty response")
+	}
+	if !resp.Success() {
+		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s", resp.Msg)
+	}
+	if resp.Data == nil || resp.Data.Result == nil {
+		return ExportTaskResult{}, nil
+	}
+	return mapExportTask(resp.Data.Result), nil
+}
+
+func (c *Client) getExportTaskCore(ctx context.Context, tenantToken, ticket string) (ExportTaskResult, error) {
 	apiReq := &larkcore.ApiReq{
 		ApiPath:                   "/open-apis/drive/v1/export_tasks/:ticket",
 		HttpMethod:                http.MethodGet,
@@ -136,7 +193,7 @@ func (c *Client) GetExportTask(ctx context.Context, token, ticket string) (Expor
 }
 
 func (c *Client) DownloadExportedFile(ctx context.Context, token, fileToken string) (io.ReadCloser, error) {
-	if !c.available() || c.coreConfig == nil {
+	if c == nil || c.coreConfig == nil {
 		return nil, ErrUnavailable
 	}
 	if fileToken == "" {
@@ -146,6 +203,31 @@ func (c *Client) DownloadExportedFile(ctx context.Context, token, fileToken stri
 	if tenantToken == "" {
 		return nil, errors.New("tenant access token is required")
 	}
+	if c.exportTaskSDKAvailable() {
+		return c.downloadExportTaskSDK(ctx, tenantToken, fileToken)
+	}
+	return c.downloadExportTaskCore(ctx, tenantToken, fileToken)
+}
+
+func (c *Client) downloadExportTaskSDK(ctx context.Context, tenantToken, fileToken string) (io.ReadCloser, error) {
+	req := larkdrive.NewDownloadExportTaskReqBuilder().FileToken(fileToken).Build()
+	resp, err := c.sdk.Drive.V1.ExportTask.Download(ctx, req, larkcore.WithTenantAccessToken(tenantToken))
+	if err != nil {
+		return nil, err
+	}
+	if resp == nil {
+		return nil, errors.New("export download failed: empty response")
+	}
+	if resp.File != nil {
+		return io.NopCloser(resp.File), nil
+	}
+	if resp.Msg != "" {
+		return nil, fmt.Errorf("export download failed: %s", resp.Msg)
+	}
+	return nil, errors.New("export download failed: empty file response")
+}
+
+func (c *Client) downloadExportTaskCore(ctx context.Context, tenantToken, fileToken string) (io.ReadCloser, error) {
 	endpoint, err := c.endpoint("/open-apis/drive/v1/export_tasks/file/" + url.PathEscape(fileToken) + "/download")
 	if err != nil {
 		return nil, err
@@ -172,6 +254,43 @@ func (c *Client) DownloadExportedFile(ctx context.Context, token, fileToken stri
 		return nil, fmt.Errorf("export download failed: %s: %s", resp.Status, string(bytes.TrimSpace(data)))
 	}
 	return resp.Body, nil
+}
+
+func (c *Client) exportTaskSDKAvailable() bool {
+	return c != nil &&
+		c.sdk != nil &&
+		c.sdk.Drive != nil &&
+		c.sdk.Drive.V1 != nil &&
+		c.sdk.Drive.V1.ExportTask != nil
+}
+
+func mapExportTask(task *larkdrive.ExportTask) ExportTaskResult {
+	if task == nil {
+		return ExportTaskResult{}
+	}
+	result := ExportTaskResult{}
+	if task.FileExtension != nil {
+		result.FileExtension = *task.FileExtension
+	}
+	if task.Type != nil {
+		result.Type = *task.Type
+	}
+	if task.FileName != nil {
+		result.FileName = *task.FileName
+	}
+	if task.FileToken != nil {
+		result.FileToken = *task.FileToken
+	}
+	if task.FileSize != nil {
+		result.FileSize = int64(*task.FileSize)
+	}
+	if task.JobErrorMsg != nil {
+		result.JobErrorMsg = *task.JobErrorMsg
+	}
+	if task.JobStatus != nil {
+		result.JobStatus = *task.JobStatus
+	}
+	return result
 }
 
 func (c *Client) endpoint(path string) (string, error) {
