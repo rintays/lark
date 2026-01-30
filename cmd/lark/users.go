@@ -48,12 +48,12 @@ func newUsersSearchCmd(state *appState) *cobra.Command {
 			if criteria > 1 {
 				return errors.New("only one of email, mobile, or name can be used at a time")
 			}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			token, err := ensureTenantToken(context.Background(), state)
 			if err != nil {
 				return err
-			}
-			if state.SDK == nil {
-				return errors.New("sdk client is required")
 			}
 			var users []larkapi.User
 			switch {
