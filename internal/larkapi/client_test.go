@@ -1,8 +1,10 @@
 package larkapi
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
+	"io"
 	"net/http"
 	"strings"
 	"testing"
@@ -679,6 +681,37 @@ func TestGetDriveFile(t *testing.T) {
 	}
 	if file.Token != "f1" || file.URL != "https://example.com/doc" {
 		t.Fatalf("unexpected file: %+v", file)
+	}
+}
+
+func TestDownloadDriveFile(t *testing.T) {
+	content := []byte("file bytes")
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/files/f1/download" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_, _ = w.Write(content)
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	reader, err := client.DownloadDriveFile(context.Background(), "token", "f1")
+	if err != nil {
+		t.Fatalf("DownloadDriveFile error: %v", err)
+	}
+	defer reader.Close()
+	data, err := io.ReadAll(reader)
+	if err != nil {
+		t.Fatalf("read download: %v", err)
+	}
+	if !bytes.Equal(data, content) {
+		t.Fatalf("unexpected download: %q", string(data))
 	}
 }
 

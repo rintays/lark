@@ -7,6 +7,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -387,6 +388,56 @@ func TestDriveUploadCommand(t *testing.T) {
 	}
 
 	if !strings.Contains(buf.String(), "file_123\treport.txt\tfile\thttps://example.com/file") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestDriveDownloadCommand(t *testing.T) {
+	content := []byte("downloaded bytes")
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/files/f1/download" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_, _ = w.Write(content)
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	outDir := t.TempDir()
+	outPath := filepath.Join(outDir, "download.txt")
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
+	}
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"download", "--file-token", "f1", "--out", outPath})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive download error: %v", err)
+	}
+
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read downloaded file: %v", err)
+	}
+	if !bytes.Equal(data, content) {
+		t.Fatalf("unexpected file contents: %q", string(data))
+	}
+	if !strings.Contains(buf.String(), outPath) {
 		t.Fatalf("unexpected output: %q", buf.String())
 	}
 }

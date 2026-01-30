@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -23,6 +24,7 @@ func newDriveCmd(state *appState) *cobra.Command {
 	cmd.AddCommand(newDriveListCmd(state))
 	cmd.AddCommand(newDriveSearchCmd(state))
 	cmd.AddCommand(newDriveGetCmd(state))
+	cmd.AddCommand(newDriveDownloadCmd(state))
 	cmd.AddCommand(newDriveUploadCmd(state))
 	cmd.AddCommand(newDriveURLsCmd(state))
 	cmd.AddCommand(newDriveShareCmd(state))
@@ -261,6 +263,56 @@ func newDriveUploadCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&filePath, "file", "", "path to local file")
 	cmd.Flags().StringVar(&folderToken, "folder-token", "", "Drive folder token (default: root)")
 	cmd.Flags().StringVar(&uploadName, "name", "", "override the uploaded file name")
+	return cmd
+}
+
+func newDriveDownloadCmd(state *appState) *cobra.Command {
+	var fileToken string
+	var outPath string
+
+	cmd := &cobra.Command{
+		Use:   "download --file-token <token> --out <path>",
+		Short: "Download a Drive file",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if fileToken == "" {
+				return errors.New("file-token is required")
+			}
+			if outPath == "" {
+				return errors.New("out path is required")
+			}
+			if info, err := os.Stat(outPath); err == nil && info.IsDir() {
+				return fmt.Errorf("output path is a directory: %s", outPath)
+			}
+			token, err := ensureTenantToken(context.Background(), state)
+			if err != nil {
+				return err
+			}
+			reader, err := state.Client.DownloadDriveFile(context.Background(), token, fileToken)
+			if err != nil {
+				return err
+			}
+			defer reader.Close()
+			outFile, err := os.Create(outPath)
+			if err != nil {
+				return err
+			}
+			defer outFile.Close()
+			written, err := io.Copy(outFile, reader)
+			if err != nil {
+				return err
+			}
+			payload := map[string]any{
+				"file_token":    fileToken,
+				"output_path":   outPath,
+				"bytes_written": written,
+			}
+			text := fmt.Sprintf("%s\t%s\t%d", fileToken, outPath, written)
+			return state.Printer.Print(payload, text)
+		},
+	}
+
+	cmd.Flags().StringVar(&fileToken, "file-token", "", "Drive file token")
+	cmd.Flags().StringVar(&outPath, "out", "", "output file path")
 	return cmd
 }
 

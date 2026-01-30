@@ -1083,6 +1083,38 @@ func (c *Client) GetDriveFile(ctx context.Context, token, fileToken string) (Dri
 	return c.GetDriveFileMetadata(ctx, token, fileToken)
 }
 
+func (c *Client) DownloadDriveFile(ctx context.Context, token, fileToken string) (io.ReadCloser, error) {
+	if fileToken == "" {
+		return nil, fmt.Errorf("file token is required")
+	}
+	endpoint, err := c.endpoint("/open-apis/drive/v1/files/"+url.PathEscape(fileToken)+"/download", nil)
+	if err != nil {
+		return nil, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return nil, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return nil, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		data, readErr := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if readErr != nil {
+			return nil, fmt.Errorf("drive download failed: %s", resp.Status)
+		}
+		if len(data) == 0 {
+			return nil, fmt.Errorf("drive download failed: %s", resp.Status)
+		}
+		return nil, fmt.Errorf("drive download failed: %s: %s", resp.Status, string(bytes.TrimSpace(data)))
+	}
+	return resp.Body, nil
+}
+
 type DrivePermissionPublic struct {
 	ExternalAccess  bool   `json:"external_access"`
 	SecurityEntity  string `json:"security_entity"`

@@ -74,6 +74,12 @@ lark drive get <FILE_TOKEN>
 lark drive get --file-token <FILE_TOKEN>
 ```
 
+Download a Drive file:
+
+```bash
+lark drive download --file-token <FILE_TOKEN> --out ./downloaded.bin
+```
+
 Get Drive file URLs:
 
 ```bash
