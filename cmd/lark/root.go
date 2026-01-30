@@ -11,7 +11,6 @@ import (
 	"github.com/spf13/cobra"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 	"lark/internal/output"
 )
@@ -22,7 +21,6 @@ type appState struct {
 	JSON           bool
 	Verbose        bool
 	Printer        output.Printer
-	Client         *larkapi.Client
 	SDK            *larksdk.Client
 	Platform       string
 	BaseURL        string
@@ -52,11 +50,6 @@ func newRootCmd() *cobra.Command {
 				return err
 			}
 			state.Printer = output.Printer{Writer: cmd.OutOrStdout(), JSON: state.JSON}
-			state.Client = &larkapi.Client{
-				BaseURL:   cfg.BaseURL,
-				AppID:     cfg.AppID,
-				AppSecret: cfg.AppSecret,
-			}
 			sdkClient, err := larksdk.New(cfg)
 			if err == nil {
 				state.SDK = sdkClient
@@ -171,19 +164,16 @@ func ensureTenantToken(ctx context.Context, state *appState) (string, error) {
 	if state.Verbose {
 		fmt.Fprintln(state.Printer.Writer, "refreshing tenant access token")
 	}
-	var (
-		token     string
-		expiresIn int64
-		err       error
-	)
-	switch {
-	case state.SDK != nil:
-		token, expiresIn, err = state.SDK.TenantAccessToken(ctx)
-	case state.Client != nil:
-		token, expiresIn, err = state.Client.TenantAccessToken(ctx)
-	default:
-		return "", errors.New("auth client is required")
+	sdk := state.SDK
+	if sdk == nil {
+		var err error
+		sdk, err = larksdk.New(state.Config)
+		if err != nil {
+			return "", errors.New("auth client is required")
+		}
+		state.SDK = sdk
 	}
+	token, expiresIn, err := sdk.TenantAccessToken(ctx)
 	if err != nil {
 		return "", err
 	}
@@ -215,6 +205,7 @@ func ensureUserToken(ctx context.Context, state *appState) (string, error) {
 		if err != nil {
 			return "", errors.New("auth client is required")
 		}
+		state.SDK = sdk
 	}
 	token, newRefreshToken, expiresIn, err := sdk.RefreshUserAccessToken(ctx, state.Config.RefreshToken)
 	if err != nil {

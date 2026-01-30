@@ -8,8 +8,6 @@ import (
 
 	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
 	larkminutes "github.com/larksuite/oapi-sdk-go/v3/service/minutes/v1"
-
-	"lark/internal/larkapi"
 )
 
 type listMinutesResponse struct {
@@ -28,16 +26,16 @@ func (r *listMinutesResponse) Success() bool {
 	return r.Code == 0
 }
 
-func (c *Client) GetMinute(ctx context.Context, token, minuteToken, userIDType string) (larkapi.Minute, error) {
+func (c *Client) GetMinute(ctx context.Context, token, minuteToken, userIDType string) (Minute, error) {
 	if !c.available() {
-		return larkapi.Minute{}, ErrUnavailable
+		return Minute{}, ErrUnavailable
 	}
 	if minuteToken == "" {
-		return larkapi.Minute{}, errors.New("minute token is required")
+		return Minute{}, errors.New("minute token is required")
 	}
 	tenantToken := c.tenantToken(token)
 	if tenantToken == "" {
-		return larkapi.Minute{}, errors.New("tenant access token is required")
+		return Minute{}, errors.New("tenant access token is required")
 	}
 
 	builder := larkminutes.NewGetMinuteReqBuilder().MinuteToken(minuteToken)
@@ -47,27 +45,27 @@ func (c *Client) GetMinute(ctx context.Context, token, minuteToken, userIDType s
 
 	resp, err := c.sdk.Minutes.V1.Minute.Get(ctx, builder.Build(), larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
-		return larkapi.Minute{}, err
+		return Minute{}, err
 	}
 	if resp == nil {
-		return larkapi.Minute{}, errors.New("get minute failed: empty response")
+		return Minute{}, errors.New("get minute failed: empty response")
 	}
 	if !resp.Success() {
-		return larkapi.Minute{}, fmt.Errorf("get minute failed: %s", resp.Msg)
+		return Minute{}, fmt.Errorf("get minute failed: %s", resp.Msg)
 	}
 	if resp.Data == nil || resp.Data.Minute == nil {
-		return larkapi.Minute{}, nil
+		return Minute{}, nil
 	}
 	return mapMinute(resp.Data.Minute), nil
 }
 
-func (c *Client) ListMinutes(ctx context.Context, token string, req larkapi.ListMinutesRequest) (larkapi.ListMinutesResult, error) {
+func (c *Client) ListMinutes(ctx context.Context, token string, req ListMinutesRequest) (ListMinutesResult, error) {
 	if !c.available() || c.coreConfig == nil {
-		return larkapi.ListMinutesResult{}, ErrUnavailable
+		return ListMinutesResult{}, ErrUnavailable
 	}
 	tenantToken := c.tenantToken(token)
 	if tenantToken == "" {
-		return larkapi.ListMinutesResult{}, errors.New("tenant access token is required")
+		return ListMinutesResult{}, errors.New("tenant access token is required")
 	}
 
 	apiReq := &larkcore.ApiReq{
@@ -89,23 +87,23 @@ func (c *Client) ListMinutes(ctx context.Context, token string, req larkapi.List
 
 	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
-		return larkapi.ListMinutesResult{}, err
+		return ListMinutesResult{}, err
 	}
 	if apiResp == nil {
-		return larkapi.ListMinutesResult{}, errors.New("list minutes failed: empty response")
+		return ListMinutesResult{}, errors.New("list minutes failed: empty response")
 	}
 	resp := &listMinutesResponse{ApiResp: apiResp}
 	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
-		return larkapi.ListMinutesResult{}, err
+		return ListMinutesResult{}, err
 	}
 	if !resp.Success() {
-		return larkapi.ListMinutesResult{}, fmt.Errorf("list minutes failed: %s", resp.Msg)
+		return ListMinutesResult{}, fmt.Errorf("list minutes failed: %s", resp.Msg)
 	}
 
-	result := larkapi.ListMinutesResult{}
+	result := ListMinutesResult{}
 	if resp.Data != nil {
 		if resp.Data.Items != nil {
-			result.Items = make([]larkapi.Minute, 0, len(resp.Data.Items))
+			result.Items = make([]Minute, 0, len(resp.Data.Items))
 			for _, minute := range resp.Data.Items {
 				result.Items = append(result.Items, mapMinute(minute))
 			}
@@ -120,11 +118,11 @@ func (c *Client) ListMinutes(ctx context.Context, token string, req larkapi.List
 	return result, nil
 }
 
-func mapMinute(minute *larkminutes.Minute) larkapi.Minute {
+func mapMinute(minute *larkminutes.Minute) Minute {
 	if minute == nil {
-		return larkapi.Minute{}
+		return Minute{}
 	}
-	result := larkapi.Minute{}
+	result := Minute{}
 	if minute.Token != nil {
 		result.Token = *minute.Token
 	}

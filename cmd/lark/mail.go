@@ -9,7 +9,6 @@ import (
 
 	"github.com/spf13/cobra"
 
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 )
 
@@ -373,7 +372,7 @@ func newMailSendCmd(state *appState) *cobra.Command {
 	return cmd
 }
 
-func formatMailFolderLine(folder larkapi.MailFolder) string {
+func formatMailFolderLine(folder larksdk.MailFolder) string {
 	parts := []string{folder.FolderID, folder.Name}
 	if folder.FolderType != "" {
 		parts = append(parts, folder.FolderType)

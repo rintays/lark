@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
@@ -40,10 +39,6 @@ func TestSheetsReadCommandWithSDK(t *testing.T) {
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for sheets read")
-	})}}
-
 	var buf bytes.Buffer
 	state := &appState{
 		Config: &config.Config{
@@ -54,7 +49,6 @@ func TestSheetsReadCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -121,10 +115,6 @@ func TestSheetsUpdateCommandWithSDK(t *testing.T) {
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for sheets update")
-	})}}
-
 	var buf bytes.Buffer
 	state := &appState{
 		Config: &config.Config{
@@ -135,7 +125,6 @@ func TestSheetsUpdateCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -216,10 +205,6 @@ func TestSheetsAppendCommandWithSDK(t *testing.T) {
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for sheets append")
-	})}}
-
 	var buf bytes.Buffer
 	state := &appState{
 		Config: &config.Config{
@@ -230,7 +215,6 @@ func TestSheetsAppendCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -278,10 +262,6 @@ func TestSheetsMetadataCommand(t *testing.T) {
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for sheets metadata")
-	})}}
-
 	var buf bytes.Buffer
 	state := &appState{
 		Config: &config.Config{
@@ -292,7 +272,6 @@ func TestSheetsMetadataCommand(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -340,10 +319,6 @@ func TestSheetsClearCommandWithSDK(t *testing.T) {
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
-	legacyClient := &http.Client{Transport: testutil.HandlerRoundTripper{Handler: http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		t.Fatalf("legacy client used for sheets clear")
-	})}}
-
 	var buf bytes.Buffer
 	state := &appState{
 		Config: &config.Config{
@@ -354,7 +329,6 @@ func TestSheetsClearCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: "http://legacy.test", HTTPClient: legacyClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {

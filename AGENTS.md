@@ -2,7 +2,7 @@
 
 ## Project Structure & Module Organization
 - `cmd/lark`: CLI entry point and command implementations, organized by domain (e.g., `users`, `drive`, `docs`, `mail`). Add new commands under this tree.
-- `internal/`: core packages (`config`, `larkapi`, `larksdk`, `output`, `version`). Keep HTTP details and SDK adapters here, not in command files.
+- `internal/`: core packages (`config`, `larksdk`, `output`, `version`). Keep HTTP details and SDK adapters here, not in command files.
 - Docs & design: `README.md`, `DESIGN.md` describe usage, constraints, and planned work.
 - Tests live alongside code as `*_test.go` under `cmd/lark` and `internal`.
 - Dependencies are managed via `go.mod` and `go.sum`.
@@ -12,7 +12,7 @@
 - View help: `./lark --help` or `./lark users --help`.
 - Run all tests: `go test ./...`.
 - Run a single test: `go test ./cmd/lark -run TestChatsList`.
-- Inspect package docs: `go doc ./internal/larkapi`.
+- Inspect package docs: `go doc ./internal/larksdk`.
 - Race checks (slower): `go test -race ./...`.
 
 ## Coding Style & Naming Conventions
@@ -46,3 +46,4 @@
 
 ## Agent Notes
 - 2026-01-30: Unified CLI command naming (messages/contacts users), moved required flag validation to Cobra MarkFlagRequired/Args, added CLI flag validation tests, updated README examples.
+- 2026-01-30: Removed legacy HTTP client, migrated whoami/calendar to SDK, added SDK coverage matrix.

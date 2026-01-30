@@ -11,7 +11,6 @@ import (
 	"time"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
@@ -55,7 +54,6 @@ func TestMailFoldersCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -219,7 +217,6 @@ func TestMailFoldersCommandRequiresSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &bytes.Buffer{}},
-		Client:  &larkapi.Client{},
 	}
 
 	cmd := newMailCmd(state)
@@ -281,7 +278,6 @@ func TestMailListCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -341,7 +337,6 @@ func TestMailGetCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -382,7 +377,6 @@ func TestMailListCommandRequiresSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &bytes.Buffer{}},
-		Client:  &larkapi.Client{},
 	}
 
 	cmd := newMailCmd(state)
@@ -406,7 +400,6 @@ func TestMailGetCommandRequiresSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &bytes.Buffer{}},
-		Client:  &larkapi.Client{},
 	}
 
 	cmd := newMailCmd(state)
@@ -430,7 +423,6 @@ func TestMailSendCommandRequiresSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &bytes.Buffer{}},
-		Client:  &larkapi.Client{},
 	}
 
 	cmd := newMailCmd(state)
@@ -462,7 +454,6 @@ func TestMailSendCommandRequiresUserAccessToken(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &bytes.Buffer{}},
-		Client:  &larkapi.Client{},
 	}
 	t.Setenv("LARK_USER_ACCESS_TOKEN", "")
 
@@ -517,7 +508,6 @@ func setupMailSendState(t *testing.T, expectedToken string) (*appState, *bytes.B
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
@@ -644,7 +634,6 @@ func TestMailSendCommandWithSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
-		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
 	}
 	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {

@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"lark/internal/config"
-	"lark/internal/larkapi"
 	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
@@ -25,7 +24,6 @@ func TestMsgSendCommandRequiresSDK(t *testing.T) {
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &bytes.Buffer{}},
-		Client:  &larkapi.Client{},
 	}
 
 	cmd := newMsgCmd(state)
