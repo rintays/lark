@@ -20,11 +20,59 @@ func newMailCmd(state *appState) *cobra.Command {
 		Use:   "mail",
 		Short: "Manage Mail messages",
 	}
+	cmd.AddCommand(newMailMailboxCmd(state))
 	cmd.AddCommand(newMailMailboxesCmd(state))
 	cmd.AddCommand(newMailFoldersCmd(state))
 	cmd.AddCommand(newMailListCmd(state))
 	cmd.AddCommand(newMailGetCmd(state))
 	cmd.AddCommand(newMailSendCmd(state))
+	return cmd
+}
+
+func newMailMailboxCmd(state *appState) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "mailbox",
+		Short: "Manage a mailbox",
+	}
+	cmd.AddCommand(newMailMailboxGetCmd(state))
+	return cmd
+}
+
+func newMailMailboxGetCmd(state *appState) *cobra.Command {
+	var mailboxID string
+	var userAccessToken string
+	const userTokenHint = "mail mailbox get requires a user access token; pass --user-access-token, set LARK_USER_ACCESS_TOKEN, or run `lark auth user login`"
+
+	cmd := &cobra.Command{
+		Use:   "get",
+		Short: "Get mailbox details",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			token := userAccessToken
+			if token == "" {
+				token = os.Getenv("LARK_USER_ACCESS_TOKEN")
+			}
+			if token == "" {
+				var err error
+				token, err = ensureUserToken(context.Background(), state)
+				if err != nil || token == "" {
+					return errors.New(userTokenHint)
+				}
+			}
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
+			mailbox, err := state.SDK.GetMailbox(context.Background(), token, mailboxID)
+			if err != nil {
+				return err
+			}
+			payload := map[string]any{"mailbox": mailbox}
+			return state.Printer.Print(payload, formatMailMailboxLine(mailbox))
+		},
+	}
+
+	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID")
+	cmd.Flags().StringVar(&userAccessToken, "user-access-token", "", "user access token (OAuth)")
+	_ = cmd.MarkFlagRequired("mailbox-id")
 	return cmd
 }
 
