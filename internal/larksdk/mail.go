@@ -108,6 +108,21 @@ func (r *listMailboxesResponse) Success() bool {
 	return r.Code == 0
 }
 
+type getMailboxResponse struct {
+	*larkcore.ApiResp `json:"-"`
+	larkcore.CodeError
+	Data *getMailboxResponseData `json:"data"`
+}
+
+type getMailboxResponseData struct {
+	Mailbox     *Mailbox `json:"mailbox"`
+	UserMailbox *Mailbox `json:"user_mailbox"`
+}
+
+func (r *getMailboxResponse) Success() bool {
+	return r.Code == 0
+}
+
 type getMailMessageResponse struct {
 	*larkcore.ApiResp `json:"-"`
 	larkcore.CodeError
@@ -222,6 +237,53 @@ func (c *Client) ListMailboxes(ctx context.Context, token string) ([]Mailbox, er
 		return nil, nil
 	}
 	return resp.Data.Items, nil
+}
+
+func (c *Client) GetMailbox(ctx context.Context, token, mailboxID string) (Mailbox, error) {
+	if !c.available() || c.coreConfig == nil {
+		return Mailbox{}, ErrUnavailable
+	}
+	if token == "" {
+		return Mailbox{}, errors.New("user access token is required")
+	}
+	if mailboxID == "" {
+		return Mailbox{}, errors.New("mailbox id is required")
+	}
+
+	req := &larkcore.ApiReq{
+		ApiPath:                   "/open-apis/mail/v1/user_mailboxes/:user_mailbox_id",
+		HttpMethod:                http.MethodGet,
+		PathParams:                larkcore.PathParams{},
+		QueryParams:               larkcore.QueryParams{},
+		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeUser},
+	}
+	req.PathParams.Set("user_mailbox_id", mailboxID)
+
+	apiResp, err := larkcore.Request(ctx, req, c.coreConfig, larkcore.WithUserAccessToken(token))
+	if err != nil {
+		return Mailbox{}, err
+	}
+	if apiResp == nil {
+		return Mailbox{}, errors.New("get mailbox failed: empty response")
+	}
+	resp := &getMailboxResponse{ApiResp: apiResp}
+	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
+		return Mailbox{}, err
+	}
+	if !resp.Success() {
+		return Mailbox{}, fmt.Errorf("get mailbox failed: %s", resp.Msg)
+	}
+	if resp.Data == nil {
+		return Mailbox{}, nil
+	}
+	mailbox := resp.Data.Mailbox
+	if mailbox == nil {
+		mailbox = resp.Data.UserMailbox
+	}
+	if mailbox == nil {
+		return Mailbox{}, nil
+	}
+	return *mailbox, nil
 }
 
 func (c *Client) ListMailMessages(ctx context.Context, token string, req ListMailMessagesRequest) (ListMailMessagesResponse, error) {
