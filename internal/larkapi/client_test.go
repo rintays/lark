@@ -504,3 +504,41 @@ func TestGetDocxDocument(t *testing.T) {
 		t.Fatalf("unexpected doc: %+v", doc)
 	}
 }
+
+func TestReadSheetRange(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/sheets/v2/spreadsheets/spreadsheet/values/Sheet1%21A1:B2" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"valueRange": map[string]any{
+					"range":          "Sheet1!A1:B2",
+					"major_dimension": "ROWS",
+					"values": [][]any{
+						{"Name", "Amount"},
+						{"Ada", 42},
+					},
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	valueRange, err := client.ReadSheetRange(context.Background(), "token", "spreadsheet", "Sheet1!A1:B2")
+	if err != nil {
+		t.Fatalf("ReadSheetRange error: %v", err)
+	}
+	if valueRange.Range != "Sheet1!A1:B2" || len(valueRange.Values) != 2 {
+		t.Fatalf("unexpected value range: %+v", valueRange)
+	}
+}

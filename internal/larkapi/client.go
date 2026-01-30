@@ -715,3 +715,56 @@ func (c *Client) GetDocxDocument(ctx context.Context, token, documentID string) 
 	}
 	return parsed.Data.Document, nil
 }
+
+type SheetValueRange struct {
+	Range          string        `json:"range"`
+	MajorDimension string        `json:"major_dimension"`
+	Values         [][]any       `json:"values"`
+}
+
+type readSheetRangeResponse struct {
+	apiResponse
+	Data struct {
+		ValueRange SheetValueRange `json:"valueRange"`
+	} `json:"data"`
+}
+
+func (c *Client) ReadSheetRange(ctx context.Context, token, spreadsheetToken, sheetRange string) (SheetValueRange, error) {
+	if spreadsheetToken == "" {
+		return SheetValueRange{}, fmt.Errorf("spreadsheet token is required")
+	}
+	if sheetRange == "" {
+		return SheetValueRange{}, fmt.Errorf("range is required")
+	}
+	path := fmt.Sprintf("/open-apis/sheets/v2/spreadsheets/%s/values/%s", url.PathEscape(spreadsheetToken), url.PathEscape(sheetRange))
+	endpoint, err := c.endpoint(path, nil)
+	if err != nil {
+		return SheetValueRange{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return SheetValueRange{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return SheetValueRange{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return SheetValueRange{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return SheetValueRange{}, fmt.Errorf("read sheet range failed: %s", resp.Status)
+	}
+	var parsed readSheetRangeResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return SheetValueRange{}, err
+	}
+	if parsed.Code != 0 {
+		return SheetValueRange{}, fmt.Errorf("read sheet range failed: %s", parsed.Msg)
+	}
+	return parsed.Data.ValueRange, nil
+}
