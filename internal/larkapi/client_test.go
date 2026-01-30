@@ -426,6 +426,46 @@ func TestBatchGetUserIDs(t *testing.T) {
 	}
 }
 
+func TestGetContactUser(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.URL.Path != "/open-apis/contact/v3/users/ou_1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("user_id_type") != "open_id" {
+			t.Fatalf("unexpected user_id_type: %s", r.URL.Query().Get("user_id_type"))
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"user": map[string]any{
+					"user_id": "u_1",
+					"open_id": "ou_1",
+					"name":    "Ada",
+					"email":   "ada@example.com",
+					"mobile":  "+1-555-0100",
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	user, err := client.GetContactUser(context.Background(), "token", GetContactUserRequest{
+		UserID:     "ou_1",
+		UserIDType: "open_id",
+	})
+	if err != nil {
+		t.Fatalf("GetContactUser error: %v", err)
+	}
+	if user.OpenID != "ou_1" || user.Email != "ada@example.com" {
+		t.Fatalf("unexpected user: %+v", user)
+	}
+}
+
 func TestListUsersByDepartment(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodGet {

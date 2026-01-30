@@ -592,6 +592,58 @@ type User struct {
 	Mobile string `json:"mobile"`
 }
 
+type GetContactUserRequest struct {
+	UserID     string
+	UserIDType string
+}
+
+type getContactUserResponse struct {
+	apiResponse
+	Data struct {
+		User User `json:"user"`
+	} `json:"data"`
+}
+
+func (c *Client) GetContactUser(ctx context.Context, token string, req GetContactUserRequest) (User, error) {
+	if req.UserID == "" {
+		return User{}, fmt.Errorf("user id is required")
+	}
+	query := url.Values{}
+	if req.UserIDType != "" {
+		query.Set("user_id_type", req.UserIDType)
+	}
+	endpoint, err := c.endpoint("/open-apis/contact/v3/users/"+url.PathEscape(req.UserID), query)
+	if err != nil {
+		return User{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return User{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return User{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return User{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return User{}, fmt.Errorf("get contact user failed: %s", resp.Status)
+	}
+	var parsed getContactUserResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return User{}, err
+	}
+	if parsed.Code != 0 {
+		return User{}, fmt.Errorf("get contact user failed: %s", parsed.Msg)
+	}
+	return parsed.Data.User, nil
+}
+
 type BatchGetUserIDRequest struct {
 	Emails  []string
 	Mobiles []string
