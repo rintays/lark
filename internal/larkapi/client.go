@@ -566,3 +566,46 @@ func (c *Client) SearchDriveFiles(ctx context.Context, token string, req SearchD
 		HasMore:   parsed.Data.HasMore,
 	}, nil
 }
+
+type getDriveFileResponse struct {
+	apiResponse
+	Data struct {
+		File DriveFile `json:"file"`
+	} `json:"data"`
+}
+
+func (c *Client) GetDriveFile(ctx context.Context, token, fileToken string) (DriveFile, error) {
+	if fileToken == "" {
+		return DriveFile{}, fmt.Errorf("file token is required")
+	}
+	endpoint, err := c.endpoint("/open-apis/drive/v1/files/"+url.PathEscape(fileToken), nil)
+	if err != nil {
+		return DriveFile{}, err
+	}
+	request, err := http.NewRequestWithContext(ctx, http.MethodGet, endpoint, nil)
+	if err != nil {
+		return DriveFile{}, err
+	}
+	request.Header.Set("Authorization", "Bearer "+token)
+
+	resp, err := c.httpClient().Do(request)
+	if err != nil {
+		return DriveFile{}, err
+	}
+	defer resp.Body.Close()
+	data, err := io.ReadAll(resp.Body)
+	if err != nil {
+		return DriveFile{}, err
+	}
+	if resp.StatusCode < 200 || resp.StatusCode > 299 {
+		return DriveFile{}, fmt.Errorf("get drive file failed: %s", resp.Status)
+	}
+	var parsed getDriveFileResponse
+	if err := json.Unmarshal(data, &parsed); err != nil {
+		return DriveFile{}, err
+	}
+	if parsed.Code != 0 {
+		return DriveFile{}, fmt.Errorf("get drive file failed: %s", parsed.Msg)
+	}
+	return parsed.Data.File, nil
+}

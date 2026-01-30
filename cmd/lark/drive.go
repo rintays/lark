@@ -20,6 +20,7 @@ func newDriveCmd(state *appState) *cobra.Command {
 	}
 	cmd.AddCommand(newDriveListCmd(state))
 	cmd.AddCommand(newDriveSearchCmd(state))
+	cmd.AddCommand(newDriveURLsCmd(state))
 	return cmd
 }
 
@@ -147,5 +148,35 @@ func newDriveSearchCmd(state *appState) *cobra.Command {
 
 	cmd.Flags().StringVar(&query, "query", "", "search text")
 	cmd.Flags().IntVar(&limit, "limit", 50, "max number of files to return")
+	return cmd
+}
+
+func newDriveURLsCmd(state *appState) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "urls <file-id> [file-id...]",
+		Short: "Print web URLs for Drive file IDs",
+		Args:  cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			token, err := ensureTenantToken(context.Background(), state)
+			if err != nil {
+				return err
+			}
+			files := make([]larkapi.DriveFile, 0, len(args))
+			for _, fileID := range args {
+				file, err := state.Client.GetDriveFile(context.Background(), token, fileID)
+				if err != nil {
+					return err
+				}
+				files = append(files, file)
+			}
+			payload := map[string]any{"files": files}
+			lines := make([]string, 0, len(files))
+			for _, file := range files {
+				lines = append(lines, fmt.Sprintf("%s\t%s\t%s", file.Token, file.URL, file.Name))
+			}
+			return state.Printer.Print(payload, strings.Join(lines, "\n"))
+		},
+	}
+
 	return cmd
 }

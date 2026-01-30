@@ -109,3 +109,56 @@ func TestDriveSearchCommand(t *testing.T) {
 		t.Fatalf("unexpected output: %q", buf.String())
 	}
 }
+
+func TestDriveURLsCommand(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/open-apis/drive/v1/files/f1":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"file": map[string]any{"token": "f1", "name": "Doc", "url": "https://example.com/doc"},
+				},
+			})
+		case "/open-apis/drive/v1/files/f2":
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"file": map[string]any{"token": "f2", "name": "Sheet", "url": "https://example.com/sheet"},
+				},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
+	}
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"urls", "f1", "f2"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive urls error: %v", err)
+	}
+
+	output := buf.String()
+	if !strings.Contains(output, "f1\thttps://example.com/doc\tDoc") {
+		t.Fatalf("unexpected output: %q", output)
+	}
+	if !strings.Contains(output, "f2\thttps://example.com/sheet\tSheet") {
+		t.Fatalf("unexpected output: %q", output)
+	}
+}

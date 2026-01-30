@@ -384,3 +384,39 @@ func TestSearchDriveFiles(t *testing.T) {
 		t.Fatalf("unexpected pagination: %+v", result)
 	}
 }
+
+func TestGetDriveFile(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/files/f1" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"file": map[string]any{
+					"token": "f1",
+					"name":  "Doc",
+					"type":  "docx",
+					"url":   "https://example.com/doc",
+				},
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	client := &Client{BaseURL: baseURL, HTTPClient: httpClient}
+	file, err := client.GetDriveFile(context.Background(), "token", "f1")
+	if err != nil {
+		t.Fatalf("GetDriveFile error: %v", err)
+	}
+	if file.Token != "f1" || file.URL != "https://example.com/doc" {
+		t.Fatalf("unexpected file: %+v", file)
+	}
+}
