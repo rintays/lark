@@ -14,11 +14,68 @@ import (
 
 	"lark/internal/config"
 	"lark/internal/larkapi"
+	"lark/internal/larksdk"
 	"lark/internal/output"
 	"lark/internal/testutil"
 )
 
-func TestDriveListCommand(t *testing.T) {
+func TestDriveListCommandWithSDK(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/open-apis/drive/v1/files" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.URL.Query().Get("page_size") != "2" {
+			t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
+		}
+		if r.URL.Query().Get("folder_token") != "root" {
+			t.Fatalf("unexpected folder_token: %s", r.URL.Query().Get("folder_token"))
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"files":           []map[string]any{{"token": "f1", "name": "Doc", "type": "docx", "url": "https://example.com/doc"}},
+				"has_more":        false,
+				"next_page_token": "",
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"list", "--folder-id", "root", "--limit", "2"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive list error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "f1\tDoc\tdocx\thttps://example.com/doc") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestDriveListCommandFallbackToAPI(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/open-apis/drive/v1/files" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
@@ -51,6 +108,7 @@ func TestDriveListCommand(t *testing.T) {
 		},
 		Printer: output.Printer{Writer: &buf},
 		Client:  &larkapi.Client{BaseURL: baseURL, HTTPClient: httpClient},
+		SDK:     &larksdk.Client{},
 	}
 
 	cmd := newDriveCmd(state)
