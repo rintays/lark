@@ -187,7 +187,9 @@ func newDriveGetCmd(state *appState) *cobra.Command {
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
 			}
-			file, err := state.SDK.GetDriveFileMetadata(context.Background(), token, fileToken)
+			file, err := state.SDK.GetDriveFileMetadata(context.Background(), token, larksdk.GetDriveFileRequest{
+				FileToken: fileToken,
+			})
 			if err != nil {
 				return err
 			}
