@@ -18,7 +18,7 @@ type readSheetRangeResponse struct {
 }
 
 type readSheetRangeData struct {
-	ValueRange *larkapi.SheetValueRange `json:"valueRange"`
+	ValueRange *SheetValueRange `json:"valueRange"`
 }
 
 func (r *readSheetRangeResponse) Success() bool {
@@ -65,19 +65,19 @@ func (r *spreadsheetMetadataResponse) Success() bool {
 	return r.Code == 0
 }
 
-func (c *Client) ReadSheetRange(ctx context.Context, token, spreadsheetToken, sheetRange string) (larkapi.SheetValueRange, error) {
+func (c *Client) ReadSheetRange(ctx context.Context, token, spreadsheetToken, sheetRange string) (SheetValueRange, error) {
 	if !c.available() || c.coreConfig == nil {
-		return larkapi.SheetValueRange{}, ErrUnavailable
+		return SheetValueRange{}, ErrUnavailable
 	}
 	if spreadsheetToken == "" {
-		return larkapi.SheetValueRange{}, errors.New("spreadsheet token is required")
+		return SheetValueRange{}, errors.New("spreadsheet token is required")
 	}
 	if sheetRange == "" {
-		return larkapi.SheetValueRange{}, errors.New("range is required")
+		return SheetValueRange{}, errors.New("range is required")
 	}
 	tenantToken := c.tenantToken(token)
 	if tenantToken == "" {
-		return larkapi.SheetValueRange{}, errors.New("tenant access token is required")
+		return SheetValueRange{}, errors.New("tenant access token is required")
 	}
 
 	req := &larkcore.ApiReq{
@@ -92,20 +92,20 @@ func (c *Client) ReadSheetRange(ctx context.Context, token, spreadsheetToken, sh
 
 	apiResp, err := larkcore.Request(ctx, req, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
-		return larkapi.SheetValueRange{}, err
+		return SheetValueRange{}, err
 	}
 	if apiResp == nil {
-		return larkapi.SheetValueRange{}, errors.New("read sheet range failed: empty response")
+		return SheetValueRange{}, errors.New("read sheet range failed: empty response")
 	}
 	resp := &readSheetRangeResponse{ApiResp: apiResp}
 	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
-		return larkapi.SheetValueRange{}, err
+		return SheetValueRange{}, err
 	}
 	if !resp.Success() {
-		return larkapi.SheetValueRange{}, fmt.Errorf("read sheet range failed: %s", resp.Msg)
+		return SheetValueRange{}, fmt.Errorf("read sheet range failed: %s", resp.Msg)
 	}
 	if resp.Data == nil || resp.Data.ValueRange == nil {
-		return larkapi.SheetValueRange{}, nil
+		return SheetValueRange{}, nil
 	}
 	return *resp.Data.ValueRange, nil
 }
