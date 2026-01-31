@@ -231,6 +231,12 @@ Read:
 lark sheets read --spreadsheet-id <SPREADSHEET_TOKEN> --range "Sheet1!A1:B2"
 ```
 
+Search:
+
+```bash
+lark sheets search --query <TEXT> --limit 50
+```
+
 Update:
 
 ```bash

@@ -41,6 +41,7 @@ func newUsersSearchCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
+
 			var users []larksdk.User
 			switch {
 			case email != "" || mobile != "":
@@ -59,6 +60,7 @@ func newUsersSearchCmd(state *appState) *cobra.Command {
 				}
 				users = matches
 			}
+
 			payload := map[string]any{"users": users}
 			lines := make([]string, 0, len(users))
 			for _, user := range users {
