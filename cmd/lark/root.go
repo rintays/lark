@@ -246,7 +246,7 @@ func expireUserToken(state *appState, cause error) error {
 	state.Config.UserAccessTokenExpiresAt = 0
 	state.Config.RefreshToken = ""
 	saveErr := state.saveConfig()
-	base := "user access token expired; run `lark auth user login`"
+	base := fmt.Sprintf("user access token expired; run `%s`", userOAuthReloginCommand)
 	if saveErr != nil {
 		if cause != nil {
 			return fmt.Errorf("%s: %v; failed to clear cached token: %w", base, cause, saveErr)

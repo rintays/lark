@@ -22,10 +22,11 @@ import (
 )
 
 const (
-	userOAuthListenAddr   = "localhost:17653"
-	userOAuthCallbackPath = "/oauth/callback"
-	userOAuthRedirectURL  = "http://localhost:17653/oauth/callback"
-	defaultUserOAuthScope = "offline_access"
+	userOAuthListenAddr     = "localhost:17653"
+	userOAuthCallbackPath   = "/oauth/callback"
+	userOAuthRedirectURL    = "http://localhost:17653/oauth/callback"
+	defaultUserOAuthScope   = "offline_access"
+	userOAuthReloginCommand = "lark auth user login --scope offline_access --force-consent"
 )
 
 type userOAuthToken struct {
@@ -150,7 +151,7 @@ func requireUserRefreshToken(refreshToken string) error {
 	if refreshToken != "" {
 		return nil
 	}
-	return errors.New("offline access was not granted: refresh_token missing from OAuth response; re-run with: lark auth user login --scope offline_access --force-consent; check console redirect URL/config")
+	return fmt.Errorf("offline access was not granted: refresh_token missing from OAuth response; re-run with: `%s`; check console redirect URL/config", userOAuthReloginCommand)
 }
 
 func userOAuthPrompt(forceConsent bool) string {

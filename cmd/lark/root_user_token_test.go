@@ -154,6 +154,48 @@ func TestEnsureUserTokenRefreshesAndSaves(t *testing.T) {
 	}
 }
 
+func TestEnsureUserTokenMissingRefreshTokenClears(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	cfg := &config.Config{
+		AppID:                    "app",
+		AppSecret:                "secret",
+		BaseURL:                  "https://open.feishu.cn",
+		UserAccessToken:          "stale",
+		UserAccessTokenExpiresAt: time.Now().Add(-1 * time.Minute).Unix(),
+		RefreshToken:             "",
+	}
+	state := &appState{
+		ConfigPath: configPath,
+		Config:     cfg,
+	}
+
+	_, err := ensureUserToken(context.Background(), state)
+	if err == nil {
+		t.Fatalf("expected ensureUserToken error")
+	}
+	if !strings.Contains(err.Error(), userOAuthReloginCommand) {
+		t.Fatalf("expected login instruction, got %v", err)
+	}
+
+	data, readErr := os.ReadFile(configPath)
+	if readErr != nil {
+		t.Fatalf("read config: %v", readErr)
+	}
+	var saved config.Config
+	if err := json.Unmarshal(data, &saved); err != nil {
+		t.Fatalf("unmarshal config: %v", err)
+	}
+	if saved.UserAccessToken != "" {
+		t.Fatalf("expected user access token cleared, got %s", saved.UserAccessToken)
+	}
+	if saved.RefreshToken != "" {
+		t.Fatalf("expected refresh token cleared, got %s", saved.RefreshToken)
+	}
+	if saved.UserAccessTokenExpiresAt != 0 {
+		t.Fatalf("expected expiry cleared, got %d", saved.UserAccessTokenExpiresAt)
+	}
+}
+
 func TestEnsureUserTokenRefreshFailureClears(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch r.URL.Path {
@@ -200,7 +242,7 @@ func TestEnsureUserTokenRefreshFailureClears(t *testing.T) {
 	if err == nil {
 		t.Fatalf("expected ensureUserToken error")
 	}
-	if !strings.Contains(err.Error(), "lark auth user login") {
+	if !strings.Contains(err.Error(), userOAuthReloginCommand) {
 		t.Fatalf("expected login instruction, got %v", err)
 	}
 
