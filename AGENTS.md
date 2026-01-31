@@ -84,6 +84,7 @@
 - 2026-01-31: Added `lark sheets delete` command backed by Drive delete, with README/design coverage and tests.
 - 2026-01-31: Message search now resolves message IDs to full message details for output (content/sender/time), and JSON includes both message IDs and message objects.
 - 2026-01-31: Adjusted Sheets dimension payloads for better API compatibility, switched columns to COLUMNS, clarified sheet range help/examples, normalized sheets create folder-id root handling, and clarified user token help/error text for Sheets search.
+- 2026-01-31: Added user OAuth account management, keychain token storage backend, account selection via --account/LARK_ACCOUNT, and preflight scope checks for user-token commands; removed legacy user-token fallback; updated config/README accordingly.
 - 2026-01-31: Messages send now requires `--receive-id`, chats update uses positional chat-id, and message/wiki search added `--pages` pagination with auto page-size; README updated.
 - 2026-01-31: Message search scope hints now include `im:message:get_as_user` alongside `search:message` for user OAuth guidance.
 - 2026-01-31: Mail list output now includes sender and internal_date columns for quick triage.
