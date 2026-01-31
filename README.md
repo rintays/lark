@@ -205,6 +205,12 @@ lark drive share <FILE_TOKEN> --type docx --link-share tenant_readable --externa
 
 ### Docs (docx)
 
+List:
+
+```bash
+lark docs list --folder-id <FOLDER_TOKEN> --limit 50
+```
+
 Create:
 
 ```bash
