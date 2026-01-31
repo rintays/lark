@@ -2,8 +2,8 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
-	"fmt"
 	"strings"
 
 	"github.com/spf13/cobra"
@@ -23,8 +23,23 @@ func newMsgListCmd(state *appState) *cobra.Command {
 	var pageSize int
 
 	cmd := &cobra.Command{
-		Use:   "list",
+		Use:   "list <container-id>",
 		Short: "List messages in a chat or thread",
+		Args: func(cmd *cobra.Command, args []string) error {
+			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
+				return err
+			}
+			if len(args) == 0 {
+				if strings.TrimSpace(containerID) == "" {
+					return errors.New("container-id is required")
+				}
+				return nil
+			}
+			if containerID != "" && containerID != args[0] {
+				return errors.New("container-id provided twice")
+			}
+			return cmd.Flags().Set("container-id", args[0])
+		},
 		PreRunE: func(cmd *cobra.Command, args []string) error {
 			if limit <= 0 {
 				return errors.New("limit must be greater than 0")
@@ -79,25 +94,77 @@ func newMsgListCmd(state *appState) *cobra.Command {
 				messages = messages[:limit]
 			}
 			payload := map[string]any{"messages": messages}
-			lines := make([]string, 0, len(messages))
-			for _, message := range messages {
-				lines = append(lines, fmt.Sprintf("%s\t%s\t%s\t%s", message.MessageID, message.MsgType, message.ChatID, message.CreateTime))
-			}
 			text := "no messages found"
-			if len(lines) > 0 {
-				text = strings.Join(lines, "\n")
+			if len(messages) > 0 {
+				lines := make([]string, 0, len(messages))
+				for _, message := range messages {
+					lines = append(lines, formatMessageBlock(message))
+				}
+				text = strings.Join(lines, "\n\n")
 			}
 			return state.Printer.Print(payload, text)
 		},
 	}
 
 	cmd.Flags().StringVar(&containerIDType, "container-id-type", "chat", "container type (chat or thread)")
-	cmd.Flags().StringVar(&containerID, "container-id", "", "chat_id or thread_id")
+	cmd.Flags().StringVar(&containerID, "container-id", "", "chat_id or thread_id (or provide as positional argument)")
 	cmd.Flags().StringVar(&startTime, "start-time", "", "start time (unix seconds)")
 	cmd.Flags().StringVar(&endTime, "end-time", "", "end time (unix seconds)")
 	cmd.Flags().StringVar(&sortType, "sort", "ByCreateTimeAsc", "sort type (ByCreateTimeAsc or ByCreateTimeDesc)")
 	cmd.Flags().IntVar(&limit, "limit", 20, "max number of messages to return")
 	cmd.Flags().IntVar(&pageSize, "page-size", 20, "page size per request")
-	_ = cmd.MarkFlagRequired("container-id")
 	return cmd
+}
+
+func formatMessageBlock(message larksdk.Message) string {
+	content := messageContentForDisplay(message)
+	if strings.TrimSpace(content) == "" {
+		content = "(no content)"
+	}
+	contentLines := strings.Split(content, "\n")
+	lines := make([]string, 0, len(contentLines)+1)
+	lines = append(lines, contentLines[0])
+	for _, line := range contentLines[1:] {
+		lines = append(lines, "  "+line)
+	}
+	meta := formatMessageMeta(message)
+	if meta != "" {
+		lines = append(lines, "  "+meta)
+	}
+	return strings.Join(lines, "\n")
+}
+
+func formatMessageMeta(message larksdk.Message) string {
+	parts := make([]string, 0, 4)
+	if message.MessageID != "" {
+		parts = append(parts, "id: "+message.MessageID)
+	}
+	if message.MsgType != "" {
+		parts = append(parts, "type: "+message.MsgType)
+	}
+	if message.ChatID != "" {
+		parts = append(parts, "chat: "+message.ChatID)
+	}
+	if message.CreateTime != "" {
+		parts = append(parts, "time: "+message.CreateTime)
+	}
+	return strings.Join(parts, "  ")
+}
+
+func messageContentForDisplay(message larksdk.Message) string {
+	raw := strings.TrimSpace(message.Body.Content)
+	if raw == "" {
+		return ""
+	}
+	if message.MsgType == "text" {
+		var payload struct {
+			Text string `json:"text"`
+		}
+		if err := json.Unmarshal([]byte(raw), &payload); err == nil {
+			if text := strings.TrimSpace(payload.Text); text != "" {
+				return text
+			}
+		}
+	}
+	return raw
 }
