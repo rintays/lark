@@ -543,3 +543,4 @@ Deliverables:
 - 2026-02-01: Documented `keyring_backend=auto` resolution (keychain on macOS/Windows) + aligned README token storage docs.
 - 2026-02-01: Base record batch ops: added `base record batch-delete` command + SDK wrapper + unit tests.
 - 2026-02-01: Base record batch ops: added `base record batch-update` command + SDK-first + core fallback wrapper + unit tests.
+- 2026-02-01: Base field create: SDK-first + core fallback wrapper; CLI supports `--field-type <name|id>` (defaults to `text`) and prints `field_id/field_name/type`; cmd unit tests assert path/body/query + output contains `field_id`.
