@@ -251,6 +251,53 @@ func TestRootHelpShowsCalendarsCommand(t *testing.T) {
 	}
 }
 
+func TestRootHelpShowsMessagesCommand(t *testing.T) {
+	cmd := newRootCmd()
+	cmd.PersistentPreRunE = nil
+
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	cmd.SetErr(&buf)
+	cmd.SetArgs([]string{"--help"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("help error: %v", err)
+	}
+
+	foundMessages := false
+	scanner := bufio.NewScanner(strings.NewReader(buf.String()))
+	for scanner.Scan() {
+		line := scanner.Text()
+		trimmed := strings.TrimLeft(line, " \t")
+		if trimmed == "messages" || strings.HasPrefix(trimmed, "messages ") || strings.HasPrefix(trimmed, "messages\t") {
+			foundMessages = true
+		}
+	}
+	if err := scanner.Err(); err != nil {
+		t.Fatalf("scan help output: %v", err)
+	}
+	if !foundMessages {
+		t.Fatalf("expected messages command in help output, got:\n%s", buf.String())
+	}
+}
+
+func TestRootMsgAliasWorks(t *testing.T) {
+	cmd := newRootCmd()
+	cmd.PersistentPreRunE = nil
+
+	var buf bytes.Buffer
+	cmd.SetOut(&buf)
+	cmd.SetErr(&buf)
+	cmd.SetArgs([]string{"msg", "--help"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("help error: %v", err)
+	}
+	if !strings.Contains(buf.String(), "Send chat messages") {
+		t.Fatalf("unexpected help output: %q", buf.String())
+	}
+}
+
 func TestRootCalendarAliasWorks(t *testing.T) {
 	cmd := newRootCmd()
 	cmd.PersistentPreRunE = nil

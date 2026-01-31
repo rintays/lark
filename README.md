@@ -15,7 +15,7 @@ Fast, script-friendly CLI for **Feishu (飞书)** / **Lark**.
 - **Auth**
   - Tenant token fetch + caching
   - Config file support + env fallback
-- **Users / Chats / Msg (IM)**
+- **Users / Chats / Messages (IM)**
   - search users
   - list chats
   - send messages (supports `--receive-id-type`)
@@ -48,7 +48,7 @@ go build -o lark ./cmd/lark
 ./lark chats list --help
 ./lark users list --help
 ./lark users get --help
-./lark msg send --help
+./lark messages send --help  # alias: msg
 ```
 
 ---
