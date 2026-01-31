@@ -76,46 +76,6 @@ type deleteResponse struct {
 
 func (r *deleteResponse) Success() bool { return r.Code == 0 }
 
-func (c *Client) DeleteDriveFile(ctx context.Context, token string, fileToken string, fileType string) error {
-	if !c.available() || c.coreConfig == nil {
-		return ErrUnavailable
-	}
-	if fileToken == "" {
-		return errors.New("file token is required")
-	}
-	if fileType == "" {
-		return errors.New("file type is required")
-	}
-	tenantToken := c.tenantToken(token)
-	if tenantToken == "" {
-		return errors.New("tenant access token is required")
-	}
-	apiReq := &larkcore.ApiReq{
-		ApiPath:                   "/open-apis/drive/v1/files/:file_token",
-		HttpMethod:                http.MethodDelete,
-		PathParams:                larkcore.PathParams{},
-		QueryParams:               larkcore.QueryParams{},
-		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant, larkcore.AccessTokenTypeUser},
-	}
-	apiReq.PathParams.Set("file_token", fileToken)
-	apiReq.QueryParams.Set("type", fileType)
-	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
-	if err != nil {
-		return err
-	}
-	if apiResp == nil {
-		return errors.New("delete drive file failed: empty response")
-	}
-	resp := &deleteResponse{ApiResp: apiResp}
-	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
-		return err
-	}
-	if !resp.Success() {
-		return fmt.Errorf("delete drive file failed: %s", resp.Msg)
-	}
-	return nil
-}
-
 type createSpreadsheetResponse struct {
 	*larkcore.ApiResp `json:"-"`
 	larkcore.CodeError
@@ -127,9 +87,12 @@ type createSpreadsheetResponseData struct {
 }
 
 type SpreadsheetInfo struct {
-	SpreadsheetToken string `json:"spreadsheet_token"`
-	Title            string `json:"title"`
-	FolderToken      string `json:"folder_token"`
+	SpreadsheetToken string `json:"spreadsheet_token,omitempty"`
+	Title            string `json:"title,omitempty"`
+	FolderToken      string `json:"folder_token,omitempty"`
+	URL              string `json:"url,omitempty"`
+	WithoutMount     *bool  `json:"without_mount,omitempty"`
+	OwnerID          string `json:"owner_id,omitempty"`
 }
 
 func (r *createSpreadsheetResponse) Success() bool { return r.Code == 0 }
