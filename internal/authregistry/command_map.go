@@ -13,10 +13,12 @@ var commandServiceMap = map[string][]string{
 	"mail":            {"mail"},
 	"wiki":            {"wiki"},
 	"base":            {"base"},
+	"bases":           {"base"},
 	"calendar":        {"calendar"},
+	"calendars":       {"calendar"},
 	"chats":           {"im"},
-	"msg":             {"im"},
 	"messages":        {"im"},
+	"msg":             {"im"},
 	"msg search":      {"search-message"},
 	"messages search": {"search-message"},
 
