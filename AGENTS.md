@@ -66,8 +66,10 @@
 - 2026-01-31: Added base app create/copy/get/update commands (tenant-token only), including time zone/advanced/customized config flags, backed by bitable app API endpoints.
 - 2026-01-31: Added message list/search/reply, reactions, pin/unpin, chat create/get/update, and chat announcement get/update; expanded message send options and tests.
 - 2026-01-31: Added table headers and separator lines for terminal tabular outputs, with shared table formatting helpers.
+- 2026-01-31: Added calendar search/get/update/delete commands, improved primary calendar resolution, and expanded calendar auth metadata.
 - 2026-01-31: Added meeting reservation create/update/delete, expanded meeting list filters with required time range validation, and updated README features note.
 - 2026-01-31: Unified read-style commands to `info` (docs/sheets/drive/mail/users/wiki/base/config/auth/meetings/minutes) with no legacy aliases; updated tests/docs.
 - 2026-01-31: Promoted required identifiers to positional args for docs/drive/sheets/base/wiki/minutes/meetings/auth scopes/mailbox set (keeping base app-token and wiki space-id as flags), updated tests and README examples.
 - 2026-01-31: Minutes list now filters Drive file listings by type; added minutes delete/update commands backed by Drive delete and permission update endpoints, plus minutes command tests and design doc updates.
 - 2026-01-31: Aligned message list/search/reply/reactions/pin commands with positional args for required identifiers; updated tests and README examples.
+- 2026-01-31: Expanded docs/sheets/mail info output to full SDK fields with key/value tables, enriched docx/sheets/mail SDK mappings, and updated tests.
