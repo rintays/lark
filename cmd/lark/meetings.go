@@ -17,6 +17,11 @@ func newMeetingsCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "meetings",
 		Short: "Manage meetings",
+		Long: `Meetings are scheduled video meetings.
+
+- meeting_id identifies a meeting; meeting_no is the join number.
+- Meetings have time ranges, status, and participants.
+- list requires a time range; create/update manage meeting details.`,
 	}
 	cmd.AddCommand(newMeetingInfoCmd(state))
 	cmd.AddCommand(newMeetingListCmd(state))
@@ -120,7 +125,13 @@ func newMeetingListCmd(state *appState) *cobra.Command {
 			}
 			var startUnix int64
 			var endUnix int64
-			if start != "" || end != "" {
+			useTimeRange := false
+			if start == "" && end == "" {
+				now := time.Now().UTC()
+				startUnix = now.AddDate(0, -6, 0).Unix()
+				endUnix = now.Unix()
+				useTimeRange = true
+			} else {
 				if start == "" || end == "" {
 					return errors.New("start and end must be provided together")
 				}
@@ -137,6 +148,7 @@ func newMeetingListCmd(state *appState) *cobra.Command {
 				}
 				startUnix = parsedStart
 				endUnix = parsedEnd
+				useTimeRange = true
 			}
 			filterCount := 0
 			if meetingNo != "" {
@@ -195,7 +207,7 @@ func newMeetingListCmd(state *appState) *cobra.Command {
 					IncludeWebinar:          includeWebinarPtr,
 					UserIDType:              userIDType,
 				}
-				if start != "" {
+				if useTimeRange {
 					req.StartTime = strconv.FormatInt(startUnix, 10)
 					req.EndTime = strconv.FormatInt(endUnix, 10)
 				}
@@ -230,8 +242,8 @@ func newMeetingListCmd(state *appState) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&start, "start", "", "start time (RFC3339 or unix seconds)")
-	cmd.Flags().StringVar(&end, "end", "", "end time (RFC3339 or unix seconds)")
+	cmd.Flags().StringVar(&start, "start", "", "start time (RFC3339 or unix seconds; default: now-6 months when omitted)")
+	cmd.Flags().StringVar(&end, "end", "", "end time (RFC3339 or unix seconds; default: now when omitted)")
 	cmd.Flags().IntVar(&limit, "limit", 20, "max number of meetings to return")
 	cmd.Flags().IntVar(&meetingStatus, "status", 0, "meeting status")
 	cmd.Flags().StringVar(&meetingNo, "meeting-no", "", "meeting number (9 digits)")
