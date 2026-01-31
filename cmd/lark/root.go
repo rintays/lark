@@ -119,7 +119,7 @@ func platformBaseURL(platform string) (string, error) {
 	case "feishu":
 		return "https://open.feishu.cn", nil
 	case "lark":
-		return "https://open.larkoffice.com", nil
+		return "https://open.larksuite.com", nil
 	default:
 		return "", fmt.Errorf("unsupported platform %q (expected feishu or lark)", platform)
 	}

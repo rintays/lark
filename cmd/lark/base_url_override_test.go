@@ -25,8 +25,8 @@ func TestApplyBaseURLOverrides_PlatformWinsOverConfig(t *testing.T) {
 	if err := applyBaseURLOverrides(state, cfg); err != nil {
 		t.Fatalf("apply overrides: %v", err)
 	}
-	if cfg.BaseURL != "https://open.larkoffice.com" {
-		t.Fatalf("expected base_url=https://open.larkoffice.com, got %q", cfg.BaseURL)
+	if cfg.BaseURL != "https://open.larksuite.com" {
+		t.Fatalf("expected base_url=https://open.larksuite.com, got %q", cfg.BaseURL)
 	}
 }
 

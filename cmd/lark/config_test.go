@@ -178,7 +178,7 @@ func TestConfigSetPlatformLarkPersistsConfig(t *testing.T) {
 	if err := json.Unmarshal(data, &saved); err != nil {
 		t.Fatalf("unmarshal config: %v", err)
 	}
-	if saved.BaseURL != "https://open.larkoffice.com" {
+	if saved.BaseURL != "https://open.larksuite.com" {
 		t.Fatalf("expected base_url saved, got %s", saved.BaseURL)
 	}
 }
