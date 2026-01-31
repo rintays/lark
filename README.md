@@ -384,6 +384,10 @@ Example:
 ```bash
 ./lark auth user login --help
 ./lark mail public-mailboxes list --help
+./lark base app create --help
+./lark base app copy --help
+./lark base app get --help
+./lark base app update --help
 ./lark base table list --help
 ./lark base field list --help
 ./lark base view list --help
