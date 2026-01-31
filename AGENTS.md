@@ -59,3 +59,4 @@
 - 2026-01-31: Mail folders now accept `id` in API responses, mail list resolves system folder aliases, and the folder-id hint text is more explicit.
 - 2026-01-31: Added `lark sheets create` command plus README/design coverage updates.
 - 2026-01-31: Added table headers and separator lines for terminal tabular outputs, with shared table formatting helpers.
+- 2026-01-31: Added meeting reservation create/update/delete, expanded meeting list filters with required time range validation, and updated README features note.
