@@ -28,6 +28,48 @@ func TestRequiredUserScopesFromServicesOrderIndependence(t *testing.T) {
 	if !reflect.DeepEqual(a, b) {
 		t.Fatalf("union not deterministic: a=%v b=%v", a, b)
 	}
+	want := []string{"drive:drive", "mail:readonly", "wiki:wiki"}
+	if !reflect.DeepEqual(a, want) {
+		t.Fatalf("RequiredUserScopesFromServices()=%v, want %v", a, want)
+	}
+}
+
+func TestRequiredUserScopesFromServicesReportUndeclaredVsEmpty(t *testing.T) {
+	orig := Registry["mail"]
+	t.Cleanup(func() {
+		Registry["mail"] = orig
+	})
+
+	// nil RequiredUserScopes means "unknown/undeclared".
+	tmp := orig
+	tmp.RequiredUserScopes = nil
+	Registry["mail"] = tmp
+
+	scopes, missing, err := RequiredUserScopesFromServicesReport([]string{"mail"})
+	if err != nil {
+		t.Fatalf("RequiredUserScopesFromServicesReport() err=%v", err)
+	}
+	if len(scopes) != 0 {
+		t.Fatalf("scopes=%v, want empty when undeclared", scopes)
+	}
+	if want := []string{"mail"}; !reflect.DeepEqual(missing, want) {
+		t.Fatalf("missing=%v, want %v", missing, want)
+	}
+
+	// An explicitly empty slice means "declared (but empty)".
+	tmp.RequiredUserScopes = []string{}
+	Registry["mail"] = tmp
+
+	scopes, missing, err = RequiredUserScopesFromServicesReport([]string{"mail"})
+	if err != nil {
+		t.Fatalf("RequiredUserScopesFromServicesReport() err=%v", err)
+	}
+	if len(scopes) != 0 {
+		t.Fatalf("scopes=%v, want empty", scopes)
+	}
+	if len(missing) != 0 {
+		t.Fatalf("missing=%v, want empty", missing)
+	}
 }
 
 func TestRequiredUserScopesFromServicesUnknownService(t *testing.T) {

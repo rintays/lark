@@ -46,8 +46,8 @@ func TestRequirementsForCommandMail(t *testing.T) {
 	if !offline {
 		t.Fatalf("offline=false, want true")
 	}
-	if len(scopes) != 0 {
-		t.Fatalf("scopes=%v, want empty (mail scopes not declared yet)", scopes)
+	if want := []string{"mail:readonly"}; !reflect.DeepEqual(scopes, want) {
+		t.Fatalf("scopes=%v, want %v", scopes, want)
 	}
 }
 
