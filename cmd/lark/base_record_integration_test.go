@@ -54,7 +54,7 @@ func TestIntegrationBaseRecordCreateGetDelete(t *testing.T) {
 		if recordID == "" {
 			return
 		}
-		if err := sdk.DeleteBaseRecord(ctx, tenantToken, appToken, tableID, recordID); err != nil {
+		if _, err := sdk.DeleteBaseRecord(ctx, tenantToken, appToken, tableID, recordID); err != nil {
 			t.Fatalf("delete record: %v", err)
 		}
 	}()
