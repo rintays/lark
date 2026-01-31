@@ -86,3 +86,4 @@
 - 2026-01-31: Adjusted Sheets dimension payloads for better API compatibility, switched columns to COLUMNS, clarified sheet range help/examples, normalized sheets create folder-id root handling, and clarified user token help/error text for Sheets search.
 - 2026-01-31: Message search scope hints now include `im:message:get_as_user` alongside `search:message` for user OAuth guidance.
 - 2026-01-31: Made meetings list and calendars list/search accept optional start/end filters, removed required flags, and added calendar pagination to respect `--limit`.
+- 2026-01-31: Meetings list now defaults to the last 6 months when start/end are omitted.
