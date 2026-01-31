@@ -309,6 +309,7 @@ Discovery coverage (list/search) gaps to close for “CLI-only” workflows:
 - [ ] Drive: `drive list/search` exist, but add better discoverability flags if needed:
   - [x] `drive search --type <docx|sheet|bitable|file|doc>` (implemented; request uses file_types + README example)
   - [x] `drive search --folder-id <token>` (implemented; request uses folder_token)
+  - [x] `drive search --pages <N>` caps pagination (prevents unbounded API calls); unit-tested
 
 Mail CLI-only usability gaps:
 - [x] Make `--mailbox-id` optional across user-mailbox commands (default to `me`):
@@ -504,3 +505,4 @@ Deliverables:
 - 2026-01-31: Marked runtime base-url/platform override tests/docs complete; updated Lark base URL to `open.larksuite.com`.
 - 2026-01-31: Marked `lark config list-keys` complete.
 - 2026-01-31: Started gog-style auth service registry (`internal/authregistry`) + stable-sorted scope union + unit tests.
+- 2026-01-31: Added unit tests for drive search pagination capping (`--pages` + `--limit`).
