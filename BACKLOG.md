@@ -285,6 +285,7 @@ P1:
       - Supports `--field-type <name|id>` (default: `text`); output includes `field_id/field_name/type`.
     - [x] `base field delete`
   - [ ] `base view create/update/delete`
+    - [x] `base view create`
 
 P2:
 - [ ] `base app create/info/update/copy` (SDK supports; enables CLI-only lifecycle)
@@ -545,3 +546,4 @@ Deliverables:
 - 2026-02-01: Base record batch ops: added `base record batch-delete` command + SDK wrapper + unit tests.
 - 2026-02-01: Base record batch ops: added `base record batch-update` command + SDK-first + core fallback wrapper + unit tests.
 - 2026-02-01: Base field create: SDK-first + core fallback wrapper; CLI supports `--field-type <name|id>` (defaults to `text`) and prints `field_id/field_name/type`; cmd unit tests assert path/body/query + output contains `field_id`.
+- 2026-02-01: Base view create: added core fallback (POST /views) while keeping SDK-first; CLI defaults `--view-type` to `grid`.

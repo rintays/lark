@@ -43,6 +43,9 @@ func newBaseViewCreateCmd(state *appState) *cobra.Command {
 			if strings.TrimSpace(viewName) == "" {
 				return errors.New("name is required")
 			}
+			if strings.TrimSpace(viewType) == "" {
+				_ = cmd.Flags().Set("view-type", "grid")
+			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -66,7 +69,7 @@ func newBaseViewCreateCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&appToken, "app-token", "", "Bitable app token")
 	cmd.Flags().StringVar(&tableID, "table-id", "", "Bitable table id (or provide as positional argument)")
 	cmd.Flags().StringVar(&viewName, "name", "", "View name (or provide as positional argument)")
-	cmd.Flags().StringVar(&viewType, "view-type", "", "View type (grid|kanban|gallery|gantt|form)")
+	cmd.Flags().StringVar(&viewType, "view-type", "grid", "View type (grid|kanban|gallery|gantt|form)")
 	_ = cmd.MarkFlagRequired("app-token")
 	return cmd
 }
