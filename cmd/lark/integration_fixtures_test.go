@@ -46,36 +46,35 @@ type integrationFixtures struct {
 	MailTo string
 }
 
-func (fx integrationFixtures) EnsureChatID(t *testing.T) string {
+func (fx *integrationFixtures) EnsureChatID(t *testing.T) string {
 	t.Helper()
 	if fx.ChatID != "" {
 		return fx.ChatID
 	}
-
-	ctx := t.Context()
-	userIDs := []string{}
-	if fx.UserEmail != "" {
-		users, err := fx.SDK.BatchGetUserIDs(ctx, fx.Token, larksdk.BatchGetUserIDRequest{Emails: []string{fx.UserEmail}})
-		if err != nil {
-			t.Fatalf("batch get user id for %s: %v", fx.UserEmail, err)
-		}
-		if len(users) > 0 && users[0].UserID != "" {
-			userIDs = []string{users[0].UserID}
-		}
+	if fx.UserEmail == "" {
+		t.Fatalf("missing LARK_TEST_USER_EMAIL (needed to create a chat fixture)")
 	}
-
+	ctx := t.Context()
+	users, err := fx.SDK.BatchGetUserIDs(ctx, fx.Token, larksdk.BatchGetUserIDRequest{Emails: []string{fx.UserEmail}})
+	if err != nil {
+		t.Fatalf("batch get user id for %s: %v", fx.UserEmail, err)
+	}
+	if len(users) == 0 || users[0].UserID == "" {
+		t.Fatalf("no user id found for %s", fx.UserEmail)
+	}
 	chatName := integrationFixturePrefix + "chat-" + time.Now().Format("20060102-150405")
-	chatID, err := fx.SDK.CreateChat(ctx, fx.Token, chatName, userIDs)
+	chatID, err := fx.SDK.CreateChat(ctx, fx.Token, chatName, []string{users[0].UserID})
 	if err != nil {
 		t.Fatalf("create chat: %v", err)
 	}
+	fx.ChatID = chatID
 	// Best-effort cleanup.
 	t.Cleanup(func() {
 		if err := fx.SDK.DeleteChat(context.Background(), fx.Token, chatID); err != nil {
 			t.Logf("cleanup: delete chat %s: %v", chatID, err)
 		}
 	})
-	return chatID
+	return fx.ChatID
 }
 
 func (fx *integrationFixtures) EnsureBaseAppToken(t *testing.T) string {
@@ -92,14 +91,7 @@ func (fx *integrationFixtures) EnsureBaseAppToken(t *testing.T) string {
 		PageSize:  50,
 	})
 	if err != nil {
-		// Some tenants may not allow drive search with tenant token.
-		// Fall back to creating the dedicated app.
-		app, err2 := fx.SDK.CreateBitableApp(ctx, fx.Token, integrationBaseAppName, fx.DriveFolderToken)
-		if err2 != nil {
-			t.Fatalf("search drive for base app: %v; create bitable app failed: %v", err, err2)
-		}
-		fx.BaseAppToken = app.AppToken
-		return fx.BaseAppToken
+		t.Fatalf("search drive for base app: %v", err)
 	}
 	files := res.Files
 	for res.HasMore {
@@ -225,18 +217,17 @@ func getIntegrationFixtures(t *testing.T) integrationFixtures {
 		ChatID:           os.Getenv("LARK_TEST_CHAT_ID"),
 		UserEmail:        os.Getenv("LARK_TEST_USER_EMAIL"),
 
-		SpreadsheetToken: os.Getenv("LARK_TEST_SHEET_ID"),
-		SheetID:          os.Getenv("LARK_TEST_SHEET_SHEET_ID"),
-		SheetTitle:       os.Getenv("LARK_TEST_SHEET_TITLE"),
-
 		BaseAppToken: os.Getenv("LARK_TEST_APP_TOKEN"),
 		MailTo:       os.Getenv("LARK_TEST_MAIL_TO"),
 	}
 
-	// If spreadsheet token is not provided, create one (best-effort) for tests.
+	// Drive folder token: optional. If not provided, we operate under root.
+	// (Creating folders via OpenAPI may require extra permissions depending on tenant setup.)
+
+	// Spreadsheet fixture
 	if fx.SpreadsheetToken == "" {
-		title := integrationFixturePrefix + "sheet-" + time.Now().Format("20060102-150405")
-		ssToken, err := sdk.CreateSpreadsheet(t.Context(), token, title, fx.DriveFolderToken)
+		ssTitle := integrationFixturePrefix + "sheet-" + time.Now().Format("20060102-150405")
+		ssToken, err := sdk.CreateSpreadsheet(t.Context(), token, ssTitle, fx.DriveFolderToken)
 		if err != nil {
 			t.Fatalf("create spreadsheet: %v", err)
 		}
@@ -248,7 +239,7 @@ func getIntegrationFixtures(t *testing.T) integrationFixtures {
 		})
 	}
 
-	// Derive sheet id/title from API.
+	// Sheet id + title fixture (queried from API)
 	if fx.SheetID == "" || fx.SheetTitle == "" {
 		sheets, err := sdk.ListSpreadsheetSheets(t.Context(), token, fx.SpreadsheetToken)
 		if err != nil {
@@ -263,9 +254,10 @@ func getIntegrationFixtures(t *testing.T) integrationFixtures {
 		if fx.SheetTitle == "" {
 			fx.SheetTitle = sheets[0].Title
 		}
-	}
-	if fx.SheetTitle == "" {
-		fx.SheetTitle = "Sheet1"
+		if fx.SheetTitle == "" {
+			// Fallback: many tenants default to "Sheet1", but don't rely on it.
+			fx.SheetTitle = "Sheet1"
+		}
 	}
 
 	return fx
