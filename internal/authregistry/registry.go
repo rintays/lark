@@ -62,8 +62,8 @@ var Registry = map[string]ServiceDef{
 	"sheets": {Name: "sheets", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiredUserScopes: []string{"drive:drive"}, UserScopes: ServiceScopeSet{Full: []string{"drive:drive"}, Readonly: []string{"drive:drive:readonly"}}, RequiresOffline: true},
 
 	"calendar": {Name: "calendar", TokenTypes: []TokenType{TokenTenant}},
-	"mail":     {Name: "mail", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiresOffline: true},
-	"wiki":     {Name: "wiki", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiresOffline: true},
+	"mail":     {Name: "mail", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiredUserScopes: []string{"mail:readonly"}, RequiresOffline: true}, // TODO: verify mail user OAuth scopes for message send
+	"wiki":     {Name: "wiki", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiredUserScopes: []string{"wiki:wiki"}, UserScopes: ServiceScopeSet{Full: []string{"wiki:wiki"}, Readonly: []string{"wiki:wiki:readonly"}}, RequiresOffline: true},
 	"base":     {Name: "base", TokenTypes: []TokenType{TokenTenant}},
 }
 
