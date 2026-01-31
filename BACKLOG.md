@@ -302,6 +302,7 @@ Discovery coverage (list/search) gaps to close for “CLI-only” workflows:
 - [x] Sheets: add list/search commands so users can find spreadsheet tokens without leaving CLI
   - [x] `sheets search --query ...` (filters drive search results to sheet)
   - [x] `sheets list --folder-id ...` (filters drive list results to sheet)
+  - [x] `sheets create --title ... [--folder-id ...]` (creates a spreadsheet; returns spreadsheet_token)
   - Fallback (documented): `drive search --type sheet --query ...`
 - [x] Meetings: add `meetings list` (so users can find meeting_id without leaving CLI)
   - [x] Research API availability and required token type
