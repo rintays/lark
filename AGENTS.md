@@ -21,6 +21,7 @@
 - Command files and flags should align with their domain (`users_*`, `drive_*`).
 - Preserve dual output modes: human-readable by default, scriptable with `--json`.
 - Errors should include context (command, ID type, key parameters).
+- Error messages should explain the failure and, when the cause is unclear, guide users toward the next steps to run successfully.
 
 ## Testing Guidelines
 - Use Go’s standard `testing` package.
