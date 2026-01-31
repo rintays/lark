@@ -343,6 +343,48 @@ func (c *Client) ListWikiSpaceMembersV2(ctx context.Context, token string, req L
 	return out, nil
 }
 
+type DeleteWikiSpaceMemberRequest struct {
+	SpaceID    string
+	MemberType string
+	MemberID   string
+}
+
+func (c *Client) DeleteWikiSpaceMemberV2(ctx context.Context, token string, req DeleteWikiSpaceMemberRequest) (WikiSpaceMember, error) {
+	if !c.available() {
+		return WikiSpaceMember{}, ErrUnavailable
+	}
+	tenantToken := c.tenantToken(token)
+	if tenantToken == "" {
+		return WikiSpaceMember{}, errors.New("tenant access token is required")
+	}
+	if req.SpaceID == "" {
+		return WikiSpaceMember{}, errors.New("space id is required")
+	}
+	if req.MemberType == "" {
+		return WikiSpaceMember{}, errors.New("member type is required")
+	}
+	if req.MemberID == "" {
+		return WikiSpaceMember{}, errors.New("member id is required")
+	}
+
+	member := larkwiki.NewMemberBuilder().MemberType(req.MemberType).MemberId(req.MemberID).Build()
+	builder := larkwiki.NewDeleteSpaceMemberReqBuilder().SpaceId(req.SpaceID).MemberId(req.MemberID).Member(member)
+	resp, err := c.sdk.Wiki.V2.SpaceMember.Delete(ctx, builder.Build(), larkcore.WithTenantAccessToken(tenantToken))
+	if err != nil {
+		return WikiSpaceMember{}, err
+	}
+	if resp == nil {
+		return WikiSpaceMember{}, errors.New("wiki member delete failed: empty response")
+	}
+	if !resp.Success() {
+		return WikiSpaceMember{}, fmt.Errorf("wiki member delete failed: %s", resp.Msg)
+	}
+	if resp.Data == nil || resp.Data.Member == nil {
+		return WikiSpaceMember{}, nil
+	}
+	return convertWikiSpaceMember(resp.Data.Member), nil
+}
+
 func convertWikiSpaceMember(m *larkwiki.Member) WikiSpaceMember {
 	out := WikiSpaceMember{}
 	if m.MemberType != nil {
