@@ -62,6 +62,9 @@ func newMailMailboxGetCmd(state *appState) *cobra.Command {
 					return errors.New(userTokenHint)
 				}
 			}
+			// Default mailbox resolution: flag > config default > "me".
+			mailboxID = resolveMailboxID(state, mailboxID)
+
 			if state.SDK == nil {
 				return errors.New("sdk client is required")
 			}
