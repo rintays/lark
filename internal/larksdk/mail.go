@@ -276,7 +276,7 @@ func (c *Client) GetMailbox(ctx context.Context, token, mailboxID string) (Mailb
 		HttpMethod:                http.MethodGet,
 		PathParams:                larkcore.PathParams{},
 		QueryParams:               larkcore.QueryParams{},
-		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant},
+		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeUser},
 	}
 	req.PathParams.Set("user_mailbox_id", mailboxID)
 
