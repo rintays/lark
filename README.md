@@ -67,6 +67,7 @@ Set the default platform base URL (optional):
 
 ```bash
 lark auth platform set feishu|lark
+lark auth platform get
 ```
 
 Or set env vars (used only when config is empty; config wins):
@@ -126,6 +127,9 @@ lark users search --email user@example.com --json
 - `--verbose`: verbose output
 - `--platform feishu|lark`: runtime base URL selection (not saved)
 - `--base-url <url>`: runtime base URL override (not saved; wins over `--platform`)
+
+Precedence:
+`--base-url` > `--platform` > `config.base_url` > default (`https://open.feishu.cn`).
 
 ---
 
