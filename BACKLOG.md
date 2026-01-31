@@ -145,7 +145,7 @@ Work items (must follow the design, not ad-hoc patches):
   - [ ] `lark auth user status` shows: who (if possible), services enabled, scopes union, offline/refresh availability, expiry
   - [ ] Standardized remediation messages:
     - [x] missing refresh_token → tell user to rerun with `--force-consent` / correct scopes
-    - [ ] revoked refresh_token → clear + rerun login
+    - [x] revoked refresh_token → clear + rerun login
     - [ ] insufficient scope → suggest adding service/scope and re-login
 
 ---
