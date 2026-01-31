@@ -282,6 +282,7 @@ P1:
 - [ ] schema/view management
   - [ ] `base field create/update/delete`
     - [x] `base field create`
+    - [x] `base field delete`
   - [ ] `base view create/update/delete`
 
 P2:
