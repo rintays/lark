@@ -141,7 +141,9 @@ Work items (must follow the design, not ad-hoc patches):
     - [x] insufficient_scope/permission errors (best-effort: wiki node search adds re-login hint)
   - [x] Make remediation messages print the exact command to run next
 - [ ] **Token storage backend policy + implementation**
-  - [ ] Backend selection: `auto|keychain|file` (keyring)
+  - [x] Backend selection knob (config `keyring_backend` + env `LARK_KEYRING_BACKEND`) parsed + defaulted to `file`
+  - [x] Env fallback when config missing (currently: config takes precedence when set; env fills when missing)
+  - [ ] Implement keychain backend (actual secure storage; today `keychain` errors with a clear message)
   - [ ] Env > config precedence (e.g., `LARK_KEYRING_BACKEND`, `LARK_KEYRING_PASSWORD` for headless)
   - [ ] Store refresh token as JSON payload including metadata (`services`, `scopes`, `created_at`) to power `auth status`
 - [ ] **Multi-profile / multi-account / multi-app isolation**
