@@ -117,9 +117,23 @@ func platformBaseURL(platform string) (string, error) {
 	case "feishu":
 		return "https://open.feishu.cn", nil
 	case "lark":
-		return "https://open.larksuite.com", nil
+		return "https://open.larkoffice.com", nil
 	default:
 		return "", fmt.Errorf("unsupported platform %q (expected feishu or lark)", platform)
+	}
+}
+
+func platformFromBaseURL(baseURL string) string {
+	normalized := normalizeBaseURL(baseURL)
+	switch {
+	case strings.EqualFold(normalized, "https://open.feishu.cn"):
+		return "feishu"
+	case strings.EqualFold(normalized, "https://open.larkoffice.com"):
+		return "lark"
+	case strings.EqualFold(normalized, "https://open.larksuite.com"):
+		return "lark"
+	default:
+		return "custom"
 	}
 }
 
