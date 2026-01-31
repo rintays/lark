@@ -277,7 +277,7 @@ P1:
 - [x] `base table delete`
 - [ ] record batch operations
   - [x] `base record batch-create`
-  - [ ] `base record batch-update`
+  - [x] `base record batch-update`
   - [x] `base record batch-delete`
 - [ ] schema/view management
   - [ ] `base field create/update/delete`
@@ -540,3 +540,4 @@ Deliverables:
 - 2026-02-01: Auth registry: made `SuggestedUserOAuthScopesFromServices` variant selection fall back consistently (readonly/full/required) + added unit tests.
 - 2026-02-01: Documented `keyring_backend=auto` resolution (keychain on macOS/Windows) + aligned README token storage docs.
 - 2026-02-01: Base record batch ops: added `base record batch-delete` command + SDK wrapper + unit tests.
+- 2026-02-01: Base record batch ops: added `base record batch-update` command + SDK-first + core fallback wrapper + unit tests.
