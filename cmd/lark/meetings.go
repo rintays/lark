@@ -125,10 +125,12 @@ func newMeetingListCmd(state *appState) *cobra.Command {
 			}
 			var startUnix int64
 			var endUnix int64
+			useTimeRange := false
 			if start == "" && end == "" {
 				now := time.Now().UTC()
 				startUnix = now.AddDate(0, -6, 0).Unix()
 				endUnix = now.Unix()
+				useTimeRange = true
 			} else {
 				if start == "" || end == "" {
 					return errors.New("start and end must be provided together")
@@ -146,6 +148,7 @@ func newMeetingListCmd(state *appState) *cobra.Command {
 				}
 				startUnix = parsedStart
 				endUnix = parsedEnd
+				useTimeRange = true
 			}
 			filterCount := 0
 			if meetingNo != "" {
@@ -204,7 +207,7 @@ func newMeetingListCmd(state *appState) *cobra.Command {
 					IncludeWebinar:          includeWebinarPtr,
 					UserIDType:              userIDType,
 				}
-				if start != "" {
+				if useTimeRange {
 					req.StartTime = strconv.FormatInt(startUnix, 10)
 					req.EndTime = strconv.FormatInt(endUnix, 10)
 				}
