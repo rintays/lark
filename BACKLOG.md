@@ -305,7 +305,7 @@ Discovery coverage (list/search) gaps to close for “CLI-only” workflows:
   - [x] `drive search --folder-id <token>` (implemented; request uses folder_token)
 
 Mail CLI-only usability gaps:
-- [ ] Make `--mailbox-id` optional across user-mailbox commands (default to `me`):
+- [x] Make `--mailbox-id` optional across user-mailbox commands (default to `me`):
   - [x] `mail folders` (defaults mailbox-id via resolveMailboxID; help text updated)
   - [x] `mail list` (already defaults mailbox-id via resolveMailboxID + tests cover)
   - [x] `mail get` (message-id only; mailbox defaults via resolveMailboxID + tests cover)
