@@ -524,6 +524,7 @@ func TestMailListCommandWithSDK(t *testing.T) {
 }
 
 func TestMailListCommandUsesDefaultMailboxID(t *testing.T) {
+	var folderCalls int
 	var listCalls int
 	var getCalls int
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -534,10 +535,29 @@ func TestMailListCommandUsesDefaultMailboxID(t *testing.T) {
 			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
 		}
 		switch r.URL.Path {
+		case "/open-apis/mail/v1/user_mailboxes/mbx_default/folders":
+			folderCalls++
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"items": []map[string]any{
+						{
+							"folder_id":   "fld_inbox",
+							"name":        "Inbox",
+							"folder_type": "INBOX",
+						},
+					},
+				},
+			})
 		case "/open-apis/mail/v1/user_mailboxes/mbx_default/messages":
 			listCalls++
 			if r.URL.Query().Get("page_size") != "1" {
 				t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
+			}
+			if r.URL.Query().Get("folder_id") != "fld_inbox" {
+				t.Fatalf("unexpected folder_id: %s", r.URL.Query().Get("folder_id"))
 			}
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
@@ -603,9 +623,13 @@ func TestMailListCommandUsesDefaultMailboxID(t *testing.T) {
 	if getCalls != 1 {
 		t.Fatalf("expected 1 get call, got %d", getCalls)
 	}
+	if folderCalls != 1 {
+		t.Fatalf("expected 1 folder call, got %d", folderCalls)
+	}
 }
 
 func TestMailListCommandDefaultsToMeMailboxID(t *testing.T) {
+	var folderCalls int
 	var listCalls int
 	var getCalls int
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -616,10 +640,29 @@ func TestMailListCommandDefaultsToMeMailboxID(t *testing.T) {
 			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
 		}
 		switch r.URL.Path {
+		case "/open-apis/mail/v1/user_mailboxes/me/folders":
+			folderCalls++
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"items": []map[string]any{
+						{
+							"folder_id":   "fld_inbox",
+							"name":        "Inbox",
+							"folder_type": "INBOX",
+						},
+					},
+				},
+			})
 		case "/open-apis/mail/v1/user_mailboxes/me/messages":
 			listCalls++
 			if r.URL.Query().Get("page_size") != "1" {
 				t.Fatalf("unexpected page_size: %s", r.URL.Query().Get("page_size"))
+			}
+			if r.URL.Query().Get("folder_id") != "fld_inbox" {
+				t.Fatalf("unexpected folder_id: %s", r.URL.Query().Get("folder_id"))
 			}
 			w.Header().Set("Content-Type", "application/json")
 			_ = json.NewEncoder(w).Encode(map[string]any{
@@ -683,6 +726,9 @@ func TestMailListCommandDefaultsToMeMailboxID(t *testing.T) {
 	}
 	if getCalls != 1 {
 		t.Fatalf("expected 1 get call, got %d", getCalls)
+	}
+	if folderCalls != 1 {
+		t.Fatalf("expected 1 folder call, got %d", folderCalls)
 	}
 }
 

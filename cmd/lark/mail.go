@@ -240,6 +240,11 @@ func newMailListCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			folderID, err = resolveMailFolderID(context.Background(), state, token, mailboxID, folderID)
+			if err != nil {
+				return withUserScopeHintForCommand(state, err)
+			}
+			debugf(state, "mail list: mailbox_id=%q folder_id=%q limit=%d only_unread=%t\n", mailboxID, folderID, limit, onlyUnread)
 			ctx := context.Background()
 			messages := make([]larksdk.MailMessage, 0, limit)
 			pageToken := ""
@@ -482,6 +487,33 @@ func resolveMailboxID(state *appState, mailboxID string) string {
 	// Feishu Mail OpenAPI supports using literal "me" as the mailbox id for the
 	// current authenticated user (user access token).
 	return "me"
+}
+
+func resolveMailFolderID(ctx context.Context, state *appState, token, mailboxID, folderID string) (string, error) {
+	if folderID != "" {
+		return folderID, nil
+	}
+	if state == nil || state.SDK == nil {
+		return "", errors.New("sdk client is required")
+	}
+	folders, err := state.SDK.ListMailFolders(ctx, token, mailboxID)
+	if err != nil {
+		return "", err
+	}
+	for _, folder := range folders {
+		if strings.EqualFold(folder.FolderType, "INBOX") {
+			return folder.FolderID, nil
+		}
+	}
+	for _, folder := range folders {
+		if strings.EqualFold(folder.Name, "Inbox") {
+			return folder.FolderID, nil
+		}
+	}
+	if len(folders) > 0 {
+		return folders[0].FolderID, nil
+	}
+	return "", errors.New("folder id is required; run `lark mail folders` and pass --folder-id")
 }
 
 func buildMailAddressInputs(values []string) []larksdk.MailAddressInput {

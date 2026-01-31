@@ -317,6 +317,9 @@ func (c *Client) ListMailMessages(ctx context.Context, token string, req ListMai
 	if req.MailboxID == "" {
 		return ListMailMessagesResponse{}, errors.New("mailbox id is required")
 	}
+	if req.FolderID == "" {
+		return ListMailMessagesResponse{}, errors.New("folder id is required")
+	}
 	if req.PageSize <= 0 {
 		return ListMailMessagesResponse{}, errors.New("page size must be greater than 0")
 	}
