@@ -127,14 +127,48 @@ type MeetingListItem struct {
 }
 
 type ListMeetingsRequest struct {
-	PageSize  int
-	PageToken string
+	StartTime               string
+	EndTime                 string
+	MeetingStatus           *int
+	MeetingNo               string
+	UserID                  string
+	RoomID                  string
+	MeetingType             *int
+	PageSize                int
+	PageToken               string
+	IncludeExternalMeetings *bool
+	IncludeWebinar          *bool
+	UserIDType              string
 }
 
 type ListMeetingsResult struct {
 	Items     []MeetingListItem
 	PageToken string
 	HasMore   bool
+}
+
+type ReserveMeetingSetting struct {
+	Topic              *string `json:"topic,omitempty"`
+	MeetingInitialType *int    `json:"meeting_initial_type,omitempty"`
+	AutoRecord         *bool   `json:"auto_record,omitempty"`
+	Password           *string `json:"password,omitempty"`
+}
+
+type Reserve struct {
+	ID              string                 `json:"id"`
+	MeetingNo       string                 `json:"meeting_no"`
+	Password        string                 `json:"password"`
+	URL             string                 `json:"url"`
+	AppLink         string                 `json:"app_link"`
+	LiveLink        string                 `json:"live_link"`
+	EndTime         string                 `json:"end_time"`
+	ExpireStatus    *int                   `json:"expire_status,omitempty"`
+	ReserveUserID   string                 `json:"reserve_user_id"`
+	MeetingSettings *ReserveMeetingSetting `json:"meeting_settings,omitempty"`
+}
+
+type ReserveCorrectionCheckInfo struct {
+	InvalidHostIDList []string `json:"invalid_host_id_list,omitempty"`
 }
 
 type User struct {
@@ -310,4 +344,25 @@ type MailFolder struct {
 	Name           string         `json:"name"`
 	ParentFolderID string         `json:"parent_folder_id,omitempty"`
 	FolderType     MailFolderType `json:"folder_type,omitempty"`
+}
+
+func (f *MailFolder) UnmarshalJSON(data []byte) error {
+	var aux struct {
+		ID             string         `json:"id"`
+		FolderID       string         `json:"folder_id"`
+		Name           string         `json:"name"`
+		ParentFolderID string         `json:"parent_folder_id"`
+		FolderType     MailFolderType `json:"folder_type"`
+	}
+	if err := json.Unmarshal(data, &aux); err != nil {
+		return err
+	}
+	f.FolderID = aux.FolderID
+	if f.FolderID == "" {
+		f.FolderID = aux.ID
+	}
+	f.Name = aux.Name
+	f.ParentFolderID = aux.ParentFolderID
+	f.FolderType = aux.FolderType
+	return nil
 }
