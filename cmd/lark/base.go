@@ -14,10 +14,23 @@ func newBaseCmd(state *appState) *cobra.Command {
 		Use:   "base",
 		Short: "Manage Bitable bases",
 	}
+	cmd.AddCommand(newBaseAppCmd(state))
 	cmd.AddCommand(newBaseTableCmd(state))
 	cmd.AddCommand(newBaseFieldCmd(state))
 	cmd.AddCommand(newBaseViewCmd(state))
 	cmd.AddCommand(newBaseRecordCmd(state))
+	return cmd
+}
+
+func newBaseAppCmd(state *appState) *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "app",
+		Short: "Manage Bitable apps",
+	}
+	cmd.AddCommand(newBaseAppCreateCmd(state))
+	cmd.AddCommand(newBaseAppCopyCmd(state))
+	cmd.AddCommand(newBaseAppGetCmd(state))
+	cmd.AddCommand(newBaseAppUpdateCmd(state))
 	return cmd
 }
 
