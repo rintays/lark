@@ -26,6 +26,9 @@ func TestBaseFieldCreateCommand(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer tenant-token" {
 			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
 		}
+		if r.URL.RawQuery != "" {
+			t.Fatalf("unexpected query: %s", r.URL.RawQuery)
+		}
 		body, err := io.ReadAll(r.Body)
 		if err != nil {
 			t.Fatalf("read body: %v", err)
@@ -73,7 +76,7 @@ func TestBaseFieldCreateCommand(t *testing.T) {
 	state.SDK = sdkClient
 
 	cmd := newBaseCmd(state)
-	cmd.SetArgs([]string{"field", "create", "--app-token", "app_1", "--table-id", "tbl_1", "--name", "City", "--type", "1"})
+	cmd.SetArgs([]string{"field", "create", "--app-token", "app_1", "--table-id", "tbl_1", "--name", "City", "--field-type", "text"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("base field create error: %v", err)
 	}
@@ -82,7 +85,7 @@ func TestBaseFieldCreateCommand(t *testing.T) {
 	}
 }
 
-func TestBaseFieldCreateCommandWithFieldTypeName(t *testing.T) {
+func TestBaseFieldCreateCommandWithDeprecatedTypeIDFlag(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("expected POST, got %s", r.Method)
@@ -134,7 +137,7 @@ func TestBaseFieldCreateCommandWithFieldTypeName(t *testing.T) {
 	state.SDK = sdkClient
 
 	cmd := newBaseCmd(state)
-	cmd.SetArgs([]string{"field", "create", "--app-token", "app_1", "--table-id", "tbl_1", "--name", "City", "--field-type", "text"})
+	cmd.SetArgs([]string{"field", "create", "--app-token", "app_1", "--table-id", "tbl_1", "--name", "City", "--type", "1"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("base field create error: %v", err)
 	}
