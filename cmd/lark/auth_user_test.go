@@ -132,7 +132,7 @@ func TestRequireUserRefreshToken(t *testing.T) {
 	if !strings.Contains(err.Error(), "offline access was not granted") {
 		t.Fatalf("expected offline access hint, got %q", err.Error())
 	}
-	if !strings.Contains(err.Error(), "lark auth user login --scope offline_access --force-consent") {
+	if !strings.Contains(err.Error(), userOAuthReloginCommand) {
 		t.Fatalf("expected re-run instruction, got %q", err.Error())
 	}
 	if !strings.Contains(err.Error(), "redirect URL/config") {
