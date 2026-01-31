@@ -23,11 +23,13 @@ func newDocsCmd(state *appState) *cobra.Command {
 		Use:   "docs",
 		Short: "Manage Docs (docx) documents",
 	}
+	cmd.AddCommand(newDocsListCmd(state))
 	cmd.AddCommand(newDocsCreateCmd(state))
 	cmd.AddCommand(newDocsGetCmd(state))
 	cmd.AddCommand(newDocsExportCmd(state))
 	cmd.AddCommand(newDocsCatCmd(state))
 	cmd.AddCommand(newDocsSearchCmd(state))
+	cmd.AddCommand(newDocsListCmd(state))
 	return cmd
 }
 
