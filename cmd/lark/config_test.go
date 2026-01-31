@@ -198,6 +198,36 @@ func TestConfigSetPlatformAndBaseURLErrors(t *testing.T) {
 	}
 }
 
+func TestConfigUnsetBaseURLPersistsConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	cfg := config.Default()
+	cfg.BaseURL = "https://open.larkoffice.com"
+	state := &appState{
+		ConfigPath: configPath,
+		Config:     cfg,
+		Printer:    output.Printer{Writer: io.Discard},
+	}
+
+	cmd := newConfigCmd(state)
+	cmd.SetArgs([]string{"unset", "--base-url"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("config unset error: %v", err)
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	var saved config.Config
+	if err := json.Unmarshal(data, &saved); err != nil {
+		t.Fatalf("unmarshal config: %v", err)
+	}
+	if saved.BaseURL != "" {
+		t.Fatalf("expected base_url cleared, got %s", saved.BaseURL)
+	}
+}
+
 func TestConfigUnsetBaseURLClearsConfig(t *testing.T) {
 	configPath := filepath.Join(t.TempDir(), "config.json")
 	state := &appState{
@@ -224,5 +254,93 @@ func TestConfigUnsetBaseURLClearsConfig(t *testing.T) {
 	}
 	if saved.BaseURL != "" {
 		t.Fatalf("expected base_url cleared, got %q", saved.BaseURL)
+	}
+}
+
+func TestConfigUnsetDefaultMailboxIDClearsConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	state := &appState{
+		ConfigPath: configPath,
+		Config:     config.Default(),
+		Printer:    output.Printer{Writer: io.Discard},
+	}
+	state.Config.DefaultMailboxID = "mbx_123"
+
+	cmd := newConfigCmd(state)
+	cmd.SetArgs([]string{"unset", "--default-mailbox-id"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("config unset error: %v", err)
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	var saved config.Config
+	if err := json.Unmarshal(data, &saved); err != nil {
+		t.Fatalf("unmarshal config: %v", err)
+	}
+	if saved.DefaultMailboxID != "" {
+		t.Fatalf("expected default_mailbox_id cleared, got %q", saved.DefaultMailboxID)
+	}
+}
+
+func TestConfigUnsetBaseURLAndDefaultMailboxIDErrors(t *testing.T) {
+	state := &appState{
+		ConfigPath: filepath.Join(t.TempDir(), "config.json"),
+		Config:     config.Default(),
+		Printer:    output.Printer{Writer: io.Discard},
+	}
+
+	cmd := newConfigCmd(state)
+	cmd.SetArgs([]string{"unset", "--base-url", "--default-mailbox-id"})
+
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected config unset error for base-url and default-mailbox-id")
+	}
+}
+
+func TestConfigUnsetDefaultMailboxIDClearsConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	state := &appState{
+		ConfigPath: configPath,
+		Config:     config.Default(),
+		Printer:    output.Printer{Writer: io.Discard},
+	}
+	state.Config.DefaultMailboxID = "mbox_123"
+
+	cmd := newConfigCmd(state)
+	cmd.SetArgs([]string{"unset", "--default-mailbox-id"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("config unset error: %v", err)
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	var saved config.Config
+	if err := json.Unmarshal(data, &saved); err != nil {
+		t.Fatalf("unmarshal config: %v", err)
+	}
+	if saved.DefaultMailboxID != "" {
+		t.Fatalf("expected default_mailbox_id cleared, got %q", saved.DefaultMailboxID)
+	}
+}
+
+func TestConfigUnsetDefaultMailboxIDAndBaseURLErrors(t *testing.T) {
+	state := &appState{
+		ConfigPath: filepath.Join(t.TempDir(), "config.json"),
+		Config:     config.Default(),
+		Printer:    output.Printer{Writer: io.Discard},
+	}
+
+	cmd := newConfigCmd(state)
+	cmd.SetArgs([]string{"unset", "--default-mailbox-id", "--base-url"})
+
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected config unset error for default-mailbox-id and base-url")
 	}
 }
