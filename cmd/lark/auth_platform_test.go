@@ -68,7 +68,7 @@ func TestAuthPlatformSetLarkPersistsBaseURL(t *testing.T) {
 	if err := json.Unmarshal(data, &saved); err != nil {
 		t.Fatalf("unmarshal config: %v", err)
 	}
-	if saved.BaseURL != "https://open.larkoffice.com" {
+	if saved.BaseURL != "https://open.larksuite.com" {
 		t.Fatalf("expected base_url saved, got %s", saved.BaseURL)
 	}
 }
@@ -86,7 +86,7 @@ func TestAuthPlatformGetKnownPlatform(t *testing.T) {
 		},
 		{
 			name:         "lark",
-			baseURL:      "https://open.larkoffice.com",
+			baseURL:      "https://open.larksuite.com",
 			wantPlatform: "lark",
 		},
 	}
