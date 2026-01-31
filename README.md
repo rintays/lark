@@ -356,6 +356,7 @@ Explain auth requirements (services → token types/scopes) for a command:
 
 ```bash
 lark auth explain drive search
+lark auth explain --readonly drive search
 lark auth explain mail send
 ```
 
