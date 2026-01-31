@@ -63,6 +63,12 @@ Store credentials in config (default: `~/.config/lark/config.json`):
 lark auth login --app-id <APP_ID> --app-secret <APP_SECRET>
 ```
 
+Set the default platform base URL (optional):
+
+```bash
+lark auth platform set feishu|lark
+```
+
 Or set env vars (used only when config is empty; config wins):
 
 ```bash
@@ -209,6 +215,12 @@ Metadata:
 lark sheets metadata --spreadsheet-id <SPREADSHEET_TOKEN>
 ```
 
+Insert rows:
+
+```bash
+lark sheets rows insert --spreadsheet-id <SPREADSHEET_TOKEN> --sheet-id <SHEET_ID> --start-index 1 --count 2
+```
+
 ### Calendar
 
 List events:
@@ -274,7 +286,6 @@ Items not finished yet (high-level):
 - **Sheets:** row/col insert/delete commands
 - **Base (Bitable):** `base` top-level command tree (records CRUD, tables/fields/views)
 - **Wiki:** `wiki` command tree (v2 SDK endpoints + v1 search via `core.ApiReq`)
-- **Platform switching convenience:** `lark auth login --platform feishu|lark` (keep `--base-url` override)
 - **Integration tests:** `*_integration_test.go` suite gated by `LARK_INTEGRATION=1`
 
 For the full detailed task breakdown, see:
