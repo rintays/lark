@@ -31,6 +31,8 @@ func TestMailMailboxGetDefaultsMailboxID(t *testing.T) {
 			BaseURL:                    baseURL,
 			TenantAccessToken:          "token",
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+			UserAccessToken:            "user-token",
+			UserAccessTokenExpiresAt:   time.Now().Add(2 * time.Hour).Unix(),
 			DefaultMailboxID:           "mbx_1",
 		},
 		Printer: output.Printer{Writer: &buf, JSON: true},

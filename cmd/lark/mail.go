@@ -49,6 +49,9 @@ func newMailMailboxGetCmd(state *appState) *cobra.Command {
 		Use:   "get",
 		Short: "Get mailbox details",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			token, err := tokenFor(context.Background(), state, tokenTypesUser)
 			if err != nil {
 				return err
@@ -56,9 +59,6 @@ func newMailMailboxGetCmd(state *appState) *cobra.Command {
 			// Default mailbox resolution: flag > config default > "me".
 			mailboxID = resolveMailboxID(state, mailboxID)
 
-			if state.SDK == nil {
-				return errors.New("sdk client is required")
-			}
 			mailbox, err := state.SDK.GetMailbox(context.Background(), token, mailboxID)
 			if err != nil {
 				return withUserScopeHintForCommand(state, err)
@@ -190,13 +190,13 @@ func newMailFoldersCmd(state *appState) *cobra.Command {
 		Use:   "folders",
 		Short: "List mail folders",
 		RunE: func(cmd *cobra.Command, args []string) error {
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
 			mailboxID = resolveMailboxID(state, mailboxID)
 			token, err := tokenFor(context.Background(), state, tokenTypesUser)
 			if err != nil {
 				return err
-			}
-			if state.SDK == nil {
-				return errors.New("sdk client is required")
 			}
 			folders, err := state.SDK.ListMailFolders(context.Background(), token, mailboxID)
 			if err != nil {
