@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"os"
+	"strings"
 	"testing"
 	"time"
 
@@ -20,7 +21,8 @@ func TestSheetsUpdateIntegration(t *testing.T) {
 	}
 
 	// write a timestamp so it's easy to see test activity
-	values := "[[\"it\",\"" + time.Now().Format(time.RFC3339) + "\"]]"
+	ts := time.Now().Format(time.RFC3339)
+	values := "[[\"it\",\"" + ts + "\"]]"
 
 	var buf bytes.Buffer
 	cmd := newRootCmd()
@@ -38,5 +40,24 @@ func TestSheetsUpdateIntegration(t *testing.T) {
 	}
 	if _, ok := payload["update"]; !ok {
 		t.Fatalf("expected update in output, got: %v", payload)
+	}
+
+	// Verify by reading the same range back.
+	buf.Reset()
+	cmd = newRootCmd()
+	cmd.SetOut(&buf)
+	cmd.SetErr(&buf)
+	cmd.SetArgs([]string{"--json", "sheets", "read", "--spreadsheet-id", sheetID, "--range", sheetRange})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("sheets read failed: %v", err)
+	}
+
+	var readPayload map[string]any
+	if err := json.Unmarshal(buf.Bytes(), &readPayload); err != nil {
+		t.Fatalf("invalid json output (read): %v; out=%q", err, buf.String())
+	}
+	// We keep this tolerant by scanning the raw output for the timestamp.
+	if !strings.Contains(buf.String(), ts) {
+		t.Fatalf("expected read output to contain timestamp %q; got payload=%v", ts, readPayload)
 	}
 }
