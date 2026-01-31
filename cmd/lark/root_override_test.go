@@ -103,3 +103,45 @@ func TestRuntimeBaseURLOverrideDoesNotPersistConfig(t *testing.T) {
 		t.Fatalf("expected config unchanged by runtime override")
 	}
 }
+
+func TestRuntimePlatformOverrideDoesNotPersistConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	original := &config.Config{
+		AppID:     "app",
+		AppSecret: "secret",
+		BaseURL:   "https://open.feishu.cn",
+	}
+	if err := config.Save(configPath, original); err != nil {
+		t.Fatalf("save config: %v", err)
+	}
+	before, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config before: %v", err)
+	}
+
+	cfg, err := config.Load(configPath)
+	if err != nil {
+		t.Fatalf("load config: %v", err)
+	}
+	state := &appState{
+		ConfigPath: configPath,
+		Config:     cfg,
+		Platform:   "lark",
+	}
+	if err := applyBaseURLOverrides(state, cfg); err != nil {
+		t.Fatalf("applyBaseURLOverrides error: %v", err)
+	}
+	if cfg.BaseURL != "https://open.larkoffice.com" {
+		t.Fatalf("expected runtime platform override applied, got %s", cfg.BaseURL)
+	}
+	if err := state.saveConfig(); err != nil {
+		t.Fatalf("save config: %v", err)
+	}
+	after, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config after: %v", err)
+	}
+	if !bytes.Equal(before, after) {
+		t.Fatalf("expected config unchanged by runtime platform override")
+	}
+}

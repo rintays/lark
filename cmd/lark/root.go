@@ -143,7 +143,9 @@ func (state *appState) saveConfig() error {
 		return errors.New("config is required")
 	}
 	cfg := *state.Config
-	if (state.BaseURL != "" || state.Platform != "") && state.baseURLPersist != "" {
+	// Runtime overrides (--base-url/--platform) must not mutate persisted config.
+	// Always restore the originally loaded base URL (even if empty).
+	if state.BaseURL != "" || state.Platform != "" {
 		cfg.BaseURL = state.baseURLPersist
 	}
 	return config.Save(state.ConfigPath, &cfg)
