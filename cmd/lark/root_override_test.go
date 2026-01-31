@@ -28,7 +28,7 @@ func TestApplyBaseURLOverridesPrecedence(t *testing.T) {
 			name:            "platform wins when no base-url",
 			platform:        "lark",
 			configBaseURL:   "https://open.feishu.cn",
-			expectedBaseURL: "https://open.larksuite.com",
+			expectedBaseURL: "https://open.larkoffice.com",
 		},
 		{
 			name:            "config base-url used when no overrides",
@@ -84,12 +84,12 @@ func TestRuntimeBaseURLOverrideDoesNotPersistConfig(t *testing.T) {
 	state := &appState{
 		ConfigPath: configPath,
 		Config:     cfg,
-		BaseURL:    "https://open.larksuite.com",
+		BaseURL:    "https://open.larkoffice.com",
 	}
 	if err := applyBaseURLOverrides(state, cfg); err != nil {
 		t.Fatalf("applyBaseURLOverrides error: %v", err)
 	}
-	if cfg.BaseURL != "https://open.larksuite.com" {
+	if cfg.BaseURL != "https://open.larkoffice.com" {
 		t.Fatalf("expected runtime base URL override applied, got %s", cfg.BaseURL)
 	}
 	if err := state.saveConfig(); err != nil {

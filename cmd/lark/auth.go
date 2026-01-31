@@ -27,6 +27,7 @@ func newAuthCmd(state *appState) *cobra.Command {
 		},
 	}
 	cmd.AddCommand(newAuthLoginCmd(state))
+	cmd.AddCommand(newAuthPlatformCmd(state))
 	cmd.AddCommand(newAuthUserCmd(state))
 	return cmd
 }
