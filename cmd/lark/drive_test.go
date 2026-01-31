@@ -217,6 +217,178 @@ func TestDriveSearchCommand(t *testing.T) {
 	}
 }
 
+func TestDriveSearchCommandRespectsPagesCap(t *testing.T) {
+	t.Setenv("LARK_USER_ACCESS_TOKEN", "")
+	callCount := 0
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path != "/open-apis/drive/v1/files/search" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer user-token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		callCount++
+		switch callCount {
+		case 1:
+			if payload["page_size"].(float64) != 10 {
+				t.Fatalf("unexpected page_size: %+v", payload["page_size"])
+			}
+			if _, ok := payload["page_token"]; ok {
+				t.Fatalf("unexpected page_token: %+v", payload["page_token"])
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"files": []map[string]any{
+						{"token": "f1", "name": "Budget 1", "type": "sheet", "url": "https://example.com/sheet1"},
+						{"token": "f2", "name": "Budget 2", "type": "sheet", "url": "https://example.com/sheet2"},
+					},
+					"has_more":   true,
+					"page_token": "next",
+				},
+			})
+		case 2:
+			if payload["page_size"].(float64) != 8 {
+				t.Fatalf("unexpected page_size: %+v", payload["page_size"])
+			}
+			if payload["page_token"] != "next" {
+				t.Fatalf("unexpected page_token: %+v", payload["page_token"])
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"files": []map[string]any{
+						{"token": "f3", "name": "Budget 3", "type": "sheet", "url": "https://example.com/sheet3"},
+						{"token": "f4", "name": "Budget 4", "type": "sheet", "url": "https://example.com/sheet4"},
+					},
+					"has_more":   true,
+					"page_token": "next2",
+				},
+			})
+		default:
+			t.Fatalf("unexpected call count: %d", callCount)
+		}
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+			UserAccessToken:            "user-token",
+			UserAccessTokenExpiresAt:   time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"search", "--query", "budget", "--folder-id", "root", "--limit", "10", "--pages", "2"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive search error: %v", err)
+	}
+
+	output := buf.String()
+	for _, token := range []string{"f1", "f2", "f3", "f4"} {
+		if !strings.Contains(output, token) {
+			t.Fatalf("missing token %s in output: %q", token, output)
+		}
+	}
+	if callCount != 2 {
+		t.Fatalf("expected 2 calls, got %d", callCount)
+	}
+}
+
+func TestDriveSearchCommandStopsAtLimit(t *testing.T) {
+	t.Setenv("LARK_USER_ACCESS_TOKEN", "")
+	callCount := 0
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Header().Set("Content-Type", "application/json")
+		if r.URL.Path != "/open-apis/drive/v1/files/search" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer user-token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		var payload map[string]any
+		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
+			t.Fatalf("decode payload: %v", err)
+		}
+		callCount++
+		if callCount == 1 {
+			if payload["page_size"].(float64) != 2 {
+				t.Fatalf("unexpected page_size: %+v", payload["page_size"])
+			}
+			if _, ok := payload["page_token"]; ok {
+				t.Fatalf("unexpected page_token: %+v", payload["page_token"])
+			}
+		}
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"files": []map[string]any{
+					{"token": "f1", "name": "Budget 1", "type": "sheet", "url": "https://example.com/sheet1"},
+					{"token": "f2", "name": "Budget 2", "type": "sheet", "url": "https://example.com/sheet2"},
+				},
+				"has_more":   true,
+				"page_token": "next",
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+			UserAccessToken:            "user-token",
+			UserAccessTokenExpiresAt:   time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"search", "--query", "budget", "--folder-id", "root", "--limit", "2", "--pages", "5"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive search error: %v", err)
+	}
+
+	output := buf.String()
+	for _, token := range []string{"f1", "f2"} {
+		if !strings.Contains(output, token) {
+			t.Fatalf("missing token %s in output: %q", token, output)
+		}
+	}
+	if callCount != 1 {
+		t.Fatalf("expected 1 call, got %d", callCount)
+	}
+}
+
 func TestDriveSearchCommandSingleFileType(t *testing.T) {
 	t.Setenv("LARK_USER_ACCESS_TOKEN", "")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
