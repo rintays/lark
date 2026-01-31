@@ -9,17 +9,18 @@ import (
 )
 
 type Config struct {
-	AppID                      string `json:"app_id"`
-	AppSecret                  string `json:"app_secret"`
-	BaseURL                    string `json:"base_url"`
-	DefaultMailboxID           string `json:"default_mailbox_id"`
-	DefaultTokenType           string `json:"default_token_type"`
-	TenantAccessToken          string `json:"tenant_access_token"`
-	TenantAccessTokenExpiresAt int64  `json:"tenant_access_token_expires_at"`
-	UserAccessToken            string `json:"user_access_token"`
-	UserAccessTokenScope       string `json:"user_access_token_scope"`
-	RefreshToken               string `json:"refresh_token"`
-	UserAccessTokenExpiresAt   int64  `json:"user_access_token_expires_at"`
+	AppID                      string   `json:"app_id"`
+	AppSecret                  string   `json:"app_secret"`
+	BaseURL                    string   `json:"base_url"`
+	DefaultMailboxID           string   `json:"default_mailbox_id"`
+	DefaultTokenType           string   `json:"default_token_type"`
+	UserScopes                 []string `json:"user_scopes,omitempty"`
+	TenantAccessToken          string   `json:"tenant_access_token"`
+	TenantAccessTokenExpiresAt int64    `json:"tenant_access_token_expires_at"`
+	UserAccessToken            string   `json:"user_access_token"`
+	UserAccessTokenScope       string   `json:"user_access_token_scope"`
+	RefreshToken               string   `json:"refresh_token"`
+	UserAccessTokenExpiresAt   int64    `json:"user_access_token_expires_at"`
 }
 
 func Default() *Config {

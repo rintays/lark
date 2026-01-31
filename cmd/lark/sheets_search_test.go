@@ -15,11 +15,12 @@ import (
 )
 
 func TestSheetsSearchCommandUsesDriveSearchEndpoint(t *testing.T) {
+	t.Setenv("LARK_USER_ACCESS_TOKEN", "")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("unexpected method: %s", r.Method)
 		}
-		if r.Header.Get("Authorization") != "Bearer token" {
+		if r.Header.Get("Authorization") != "Bearer user-token" {
 			t.Fatalf("missing auth header")
 		}
 		if r.URL.Path != "/open-apis/drive/v1/files/search" {
@@ -29,8 +30,8 @@ func TestSheetsSearchCommandUsesDriveSearchEndpoint(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			t.Fatalf("decode payload: %v", err)
 		}
-		if payload["query"] != "budget" {
-			t.Fatalf("unexpected query: %+v", payload)
+		if payload["search_key"] != "budget" {
+			t.Fatalf("unexpected search_key: %+v", payload)
 		}
 		w.Header().Set("Content-Type", "application/json")
 		_ = json.NewEncoder(w).Encode(map[string]any{
@@ -70,6 +71,8 @@ func TestSheetsSearchCommandUsesDriveSearchEndpoint(t *testing.T) {
 			BaseURL:                    baseURL,
 			TenantAccessToken:          "token",
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+			UserAccessToken:            "user-token",
+			UserAccessTokenExpiresAt:   time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
 	}

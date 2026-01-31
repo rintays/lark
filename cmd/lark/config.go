@@ -356,6 +356,7 @@ func formatConfigHuman(cfg *config.Config) string {
 		fmt.Sprintf("base_url: %s", cfg.BaseURL),
 		fmt.Sprintf("default_mailbox_id: %s", cfg.DefaultMailboxID),
 		fmt.Sprintf("default_token_type: %s", cfg.DefaultTokenType),
+		fmt.Sprintf("user_scopes: %s", strings.Join(cfg.UserScopes, " ")),
 		fmt.Sprintf("tenant_access_token_expires_at: %d", cfg.TenantAccessTokenExpiresAt),
 		fmt.Sprintf("user_access_token_expires_at: %d", cfg.UserAccessTokenExpiresAt),
 	}

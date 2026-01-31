@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	larkcore "github.com/larksuite/oapi-sdk-go/v3/core"
 	larkdrive "github.com/larksuite/oapi-sdk-go/v3/service/drive/v1"
@@ -84,9 +85,24 @@ func (c *Client) SearchDriveFiles(ctx context.Context, token string, req SearchD
 	if tenantToken == "" {
 		return SearchDriveFilesResult{}, errors.New("tenant access token is required")
 	}
+	return c.searchDriveFiles(ctx, req, larkcore.WithTenantAccessToken(tenantToken))
+}
+
+func (c *Client) SearchDriveFilesWithUserToken(ctx context.Context, userAccessToken string, req SearchDriveFilesRequest) (SearchDriveFilesResult, error) {
+	if !c.available() || c.coreConfig == nil {
+		return SearchDriveFilesResult{}, ErrUnavailable
+	}
+	userAccessToken = strings.TrimSpace(userAccessToken)
+	if userAccessToken == "" {
+		return SearchDriveFilesResult{}, errors.New("user access token is required")
+	}
+	return c.searchDriveFiles(ctx, req, larkcore.WithUserAccessToken(userAccessToken))
+}
+
+func (c *Client) searchDriveFiles(ctx context.Context, req SearchDriveFilesRequest, option larkcore.RequestOptionFunc) (SearchDriveFilesResult, error) {
 
 	payload := map[string]any{
-		"query": req.Query,
+		"search_key": req.Query,
 	}
 	if len(req.FileTypes) > 0 {
 		payload["file_types"] = req.FileTypes
@@ -110,7 +126,7 @@ func (c *Client) SearchDriveFiles(ctx context.Context, token string, req SearchD
 		Body:                      payload,
 	}
 
-	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
+	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, option)
 	if err != nil {
 		return SearchDriveFilesResult{}, err
 	}

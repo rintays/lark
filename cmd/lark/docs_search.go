@@ -22,7 +22,8 @@ func newDocsSearchCmd(state *appState) *cobra.Command {
 			if limit <= 0 {
 				return errors.New("limit must be greater than 0")
 			}
-			token, err := tokenFor(context.Background(), state, tokenTypesTenantOrUser)
+			ctx := context.Background()
+			token, err := resolveDriveSearchToken(ctx, state)
 			if err != nil {
 				return err
 			}
@@ -40,13 +41,13 @@ func newDocsSearchCmd(state *appState) *cobra.Command {
 				}
 
 				// Thin wrapper over drive search: fetch then filter to docx.
-				result, err := state.SDK.SearchDriveFiles(context.Background(), token, larksdk.SearchDriveFilesRequest{
+				result, err := state.SDK.SearchDriveFilesWithUserToken(ctx, token, larksdk.SearchDriveFilesRequest{
 					Query:     query,
 					PageSize:  pageSize,
 					PageToken: pageToken,
 				})
 				if err != nil {
-					return err
+					return withUserScopeHint(err)
 				}
 				for _, file := range result.Files {
 					if file.FileType == "docx" {
