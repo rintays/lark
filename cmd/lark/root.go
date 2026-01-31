@@ -18,6 +18,7 @@ import (
 type appState struct {
 	ConfigPath     string
 	Config         *config.Config
+	Profile        string
 	JSON           bool
 	Verbose        bool
 	TokenType      string
@@ -41,12 +42,23 @@ func newRootCmd() *cobra.Command {
 		SilenceUsage:  true,
 		PersistentPreRunE: func(cmd *cobra.Command, args []string) error {
 			state.Command = canonicalCommandPath(cmd)
+			if state.Profile == "" {
+				state.Profile = strings.TrimSpace(os.Getenv("LARK_PROFILE"))
+			}
 			if state.ConfigPath == "" {
-				path, err := config.DefaultPath()
-				if err != nil {
-					return err
+				if state.Profile != "" {
+					path, err := config.DefaultPathForProfile(state.Profile)
+					if err != nil {
+						return err
+					}
+					state.ConfigPath = path
+				} else {
+					path, err := config.DefaultPath()
+					if err != nil {
+						return err
+					}
+					state.ConfigPath = path
 				}
-				state.ConfigPath = path
 			}
 			cfg, err := config.Load(state.ConfigPath)
 			if err != nil {
@@ -72,7 +84,8 @@ func newRootCmd() *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&state.ConfigPath, "config", "", "config path (default: ~/.config/lark/config.json)")
+	cmd.PersistentFlags().StringVar(&state.ConfigPath, "config", "", "config path (default: ~/.config/lark/config.json; uses profile path when --profile or LARK_PROFILE is set)")
+	cmd.PersistentFlags().StringVar(&state.Profile, "profile", "", "config profile (env: LARK_PROFILE)")
 	cmd.PersistentFlags().BoolVar(&state.JSON, "json", false, "output JSON")
 	cmd.PersistentFlags().BoolVar(&state.Verbose, "verbose", false, "verbose output")
 	cmd.PersistentFlags().StringVar(&state.TokenType, "token-type", "auto", "access token type (auto|tenant|user)")
@@ -245,10 +258,14 @@ func ensureUserToken(ctx context.Context, state *appState) (string, error) {
 	if err := requireCredentials(state.Config); err != nil {
 		return "", err
 	}
+	if strings.EqualFold(state.Config.KeyringBackend, "keychain") {
+		return "", errors.New("keychain backend is not implemented yet; please use keyring_backend=file (or set LARK_KEYRING_BACKEND=file)")
+	}
 	if cachedUserTokenValid(state.Config, time.Now()) {
 		return state.Config.UserAccessToken, nil
 	}
-	if state.Config.RefreshToken == "" {
+	refreshToken := state.Config.UserRefreshToken()
+	if refreshToken == "" {
 		return "", expireUserToken(state, errors.New("refresh token missing"))
 	}
 	if state.Verbose {
@@ -263,7 +280,7 @@ func ensureUserToken(ctx context.Context, state *appState) (string, error) {
 		}
 		state.SDK = sdk
 	}
-	token, newRefreshToken, expiresIn, err := sdk.RefreshUserAccessToken(ctx, state.Config.RefreshToken)
+	token, newRefreshToken, expiresIn, err := sdk.RefreshUserAccessToken(ctx, refreshToken)
 	if err != nil {
 		return "", expireUserToken(state, err)
 	}
@@ -271,6 +288,10 @@ func ensureUserToken(ctx context.Context, state *appState) (string, error) {
 	state.Config.UserAccessTokenExpiresAt = time.Now().Add(time.Duration(expiresIn) * time.Second).Unix()
 	if newRefreshToken != "" {
 		state.Config.RefreshToken = newRefreshToken
+		if state.Config.UserRefreshTokenPayload != nil {
+			state.Config.UserRefreshTokenPayload.RefreshToken = newRefreshToken
+			state.Config.UserRefreshTokenPayload.CreatedAt = time.Now().Unix()
+		}
 	}
 	if err := state.saveConfig(); err != nil {
 		return "", err
@@ -282,6 +303,7 @@ func expireUserToken(state *appState, cause error) error {
 	state.Config.UserAccessToken = ""
 	state.Config.UserAccessTokenExpiresAt = 0
 	state.Config.RefreshToken = ""
+	state.Config.UserRefreshTokenPayload = nil
 	saveErr := state.saveConfig()
 
 	reloginCmd, note := userOAuthReloginRecommendation(state)

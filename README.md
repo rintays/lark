@@ -61,7 +61,7 @@ go build -o lark ./cmd/lark
 
 ### 1) Configure app credentials
 
-Store credentials in config (default: `~/.config/lark/config.json`):
+Store credentials in config (default: `~/.config/lark/config.json`, or `~/.config/lark/profiles/<profile>/config.json` with `--profile`/`LARK_PROFILE`):
 
 ```bash
 lark auth login --app-id <APP_ID> --app-secret <APP_SECRET>
@@ -80,11 +80,18 @@ lark auth platform set feishu|lark
 lark auth platform info
 ```
 
-Or set env vars (used only when config is empty; config wins):
+Or set env vars:
 
 ```bash
+# App credentials: used only when config is empty (config wins).
 export LARK_APP_ID=<APP_ID>
 export LARK_APP_SECRET=<APP_SECRET>
+
+# Optional profile selection.
+export LARK_PROFILE=<profile>
+
+# Token storage backend: env wins over config.keyring_backend.
+export LARK_KEYRING_BACKEND=file  # or: keychain|auto
 ```
 
 View the currently loaded config:
@@ -157,6 +164,7 @@ lark users search --email user@example.com --json
 ## Global flags
 
 - `--config <path>`: override config path
+- `--profile <name>`: use a named config profile (env: `LARK_PROFILE`)
 - `--json`: JSON output
 - `--verbose`: verbose output
 - `--platform feishu|lark`: runtime base URL selection (not saved)
