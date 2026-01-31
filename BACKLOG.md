@@ -479,6 +479,7 @@ Deliverables:
 
 - [x] Keep auto-advance cronjob aligned with this backlog.
 - [x] Always keep repo clean (avoid untracked leftovers that block pulls).
+- [x] Build fix: restored `a1RangeShape` helper used by Sheets clear fallback (commit db5c339)
 
 ---
 
