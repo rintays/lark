@@ -91,6 +91,9 @@ func (c *Client) SearchDriveFiles(ctx context.Context, token string, req SearchD
 	if len(req.FileTypes) > 0 {
 		payload["file_types"] = req.FileTypes
 	}
+	if req.FolderToken != "" {
+		payload["folder_token"] = req.FolderToken
+	}
 	if req.PageSize > 0 {
 		payload["page_size"] = req.PageSize
 	}
