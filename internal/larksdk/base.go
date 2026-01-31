@@ -347,7 +347,7 @@ func (c *Client) ListBaseViews(ctx context.Context, token, appToken, tableID str
 }
 
 func (c *Client) CreateBaseView(ctx context.Context, token, appToken, tableID, viewName, viewType string) (BaseView, error) {
-	if !c.available() || c.sdk == nil || c.sdk.Bitable == nil || c.sdk.Bitable.V1 == nil || c.sdk.Bitable.V1.AppTableView == nil {
+	if !c.available() || c.coreConfig == nil {
 		return BaseView{}, ErrUnavailable
 	}
 	tenantToken := c.tenantToken(token)
@@ -363,16 +363,43 @@ func (c *Client) CreateBaseView(ctx context.Context, token, appToken, tableID, v
 	if viewName == "" {
 		return BaseView{}, errors.New("view name is required")
 	}
-
-	viewBuilder := larkbitable.NewReqViewBuilder().ViewName(viewName)
-	if viewType != "" {
-		viewBuilder.ViewType(viewType)
+	if viewType == "" {
+		return BaseView{}, errors.New("view type is required")
 	}
-	req := larkbitable.NewCreateAppTableViewReqBuilder().
-		AppToken(appToken).
-		TableId(tableID).
-		ReqView(viewBuilder.Build()).
-		Build()
+
+	if c.bitableViewCreateSDKAvailable() {
+		view, err := c.createBaseViewSDK(ctx, tenantToken, appToken, tableID, viewName, viewType)
+		if err == nil {
+			return view, nil
+		}
+	}
+	return c.createBaseViewCore(ctx, tenantToken, appToken, tableID, viewName, viewType)
+}
+
+func (c *Client) bitableViewCreateSDKAvailable() bool {
+	return c != nil && c.sdk != nil && c.sdk.Bitable != nil && c.sdk.Bitable.V1 != nil && c.sdk.Bitable.V1.AppTableView != nil
+}
+
+type createBaseViewRequestBody struct {
+	ViewName string `json:"view_name"`
+	ViewType string `json:"view_type"`
+}
+
+type createBaseViewResponse struct {
+	*larkcore.ApiResp `json:"-"`
+	larkcore.CodeError
+	Data *createBaseViewResponseData `json:"data"`
+}
+
+type createBaseViewResponseData struct {
+	View *BaseView `json:"view"`
+}
+
+func (r *createBaseViewResponse) Success() bool { return r.Code == 0 }
+
+func (c *Client) createBaseViewSDK(ctx context.Context, tenantToken, appToken, tableID, viewName, viewType string) (BaseView, error) {
+	view := larkbitable.NewReqViewBuilder().ViewName(viewName).ViewType(viewType).Build()
+	req := larkbitable.NewCreateAppTableViewReqBuilder().AppToken(appToken).TableId(tableID).ReqView(view).Build()
 	resp, err := c.sdk.Bitable.V1.AppTableView.Create(ctx, req, larkcore.WithTenantAccessToken(tenantToken))
 	if err != nil {
 		return BaseView{}, err
@@ -387,6 +414,38 @@ func (c *Client) CreateBaseView(ctx context.Context, token, appToken, tableID, v
 		return BaseView{}, nil
 	}
 	return mapBaseViewFromSDK(resp.Data.View), nil
+}
+
+func (c *Client) createBaseViewCore(ctx context.Context, tenantToken, appToken, tableID, viewName, viewType string) (BaseView, error) {
+	body := createBaseViewRequestBody{ViewName: viewName, ViewType: viewType}
+	apiReq := &larkcore.ApiReq{
+		ApiPath:                   "/open-apis/bitable/v1/apps/:app_token/tables/:table_id/views",
+		HttpMethod:                http.MethodPost,
+		PathParams:                larkcore.PathParams{},
+		QueryParams:               larkcore.QueryParams{},
+		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant},
+		Body:                      body,
+	}
+	apiReq.PathParams.Set("app_token", appToken)
+	apiReq.PathParams.Set("table_id", tableID)
+	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
+	if err != nil {
+		return BaseView{}, err
+	}
+	if apiResp == nil {
+		return BaseView{}, errors.New("create base view failed: empty response")
+	}
+	resp := &createBaseViewResponse{ApiResp: apiResp}
+	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
+		return BaseView{}, err
+	}
+	if !resp.Success() {
+		return BaseView{}, formatCodeError("create base view failed", resp.CodeError, resp.ApiResp)
+	}
+	if resp.Data == nil || resp.Data.View == nil {
+		return BaseView{}, nil
+	}
+	return *resp.Data.View, nil
 }
 
 type createBaseRecordRequestBody struct {
