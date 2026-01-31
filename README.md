@@ -28,7 +28,7 @@ Fast, script-friendly CLI for **Feishu (飞书)** / **Lark**.
 - **Docs (docx)**
   - create/info/export/cat
 - **Sheets**
-  - read/update/append/clear/info
+  - read/update/append/clear/info/delete/list/search
 - **Calendar**
   - list/create events
 - **Contacts**
@@ -371,6 +371,12 @@ Info:
 lark sheets info <SPREADSHEET_TOKEN>
 ```
 
+Delete:
+
+```bash
+lark sheets delete <SPREADSHEET_TOKEN>
+```
+
 Insert rows:
 
 ```bash
@@ -452,6 +458,8 @@ Log in with explicit scopes:
 lark auth user login --scopes "offline_access drive:drive:readonly" --force-consent
 ```
 
+By default, `auth user login` uses incremental authorization (requests only new scopes). Disable with `--incremental=false` to request the full scope set.
+
 Service-style scopes (gog-like):
 
 ```bash
@@ -511,6 +519,7 @@ Example:
 ./lark mail mailbox info --help
 ./lark mail mailbox set --mailbox-id <MAILBOX_ID>
 ./lark mail send --subject "Hello" --to "user@example.com" --text "Hi there"
+./lark mail send --raw-file ./message.eml
 ```
 
 ---
