@@ -3,24 +3,51 @@ package config
 import (
 	"encoding/json"
 	"errors"
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
 )
 
 type Config struct {
-	AppID                      string   `json:"app_id"`
-	AppSecret                  string   `json:"app_secret"`
-	BaseURL                    string   `json:"base_url"`
-	DefaultMailboxID           string   `json:"default_mailbox_id"`
-	DefaultTokenType           string   `json:"default_token_type"`
-	UserScopes                 []string `json:"user_scopes,omitempty"`
-	TenantAccessToken          string   `json:"tenant_access_token"`
-	TenantAccessTokenExpiresAt int64    `json:"tenant_access_token_expires_at"`
-	UserAccessToken            string   `json:"user_access_token"`
-	UserAccessTokenScope       string   `json:"user_access_token_scope"`
-	RefreshToken               string   `json:"refresh_token"`
-	UserAccessTokenExpiresAt   int64    `json:"user_access_token_expires_at"`
+	AppID            string `json:"app_id"`
+	AppSecret        string `json:"app_secret"`
+	BaseURL          string `json:"base_url"`
+	DefaultMailboxID string `json:"default_mailbox_id"`
+	DefaultTokenType string `json:"default_token_type"`
+
+	// KeyringBackend controls where OAuth tokens are stored.
+	// Supported values: auto|file|keychain.
+	//
+	// NOTE: only `file` is implemented today; other values are validated but may
+	// error at runtime.
+	KeyringBackend string `json:"keyring_backend,omitempty"`
+
+	UserScopes                 []string                 `json:"user_scopes,omitempty"`
+	TenantAccessToken          string                   `json:"tenant_access_token"`
+	TenantAccessTokenExpiresAt int64                    `json:"tenant_access_token_expires_at"`
+	UserAccessToken            string                   `json:"user_access_token"`
+	UserAccessTokenScope       string                   `json:"user_access_token_scope"`
+	RefreshToken               string                   `json:"refresh_token"`
+	UserRefreshTokenPayload    *UserRefreshTokenPayload `json:"user_refresh_token_payload,omitempty"`
+	UserAccessTokenExpiresAt   int64                    `json:"user_access_token_expires_at"`
+}
+
+type UserRefreshTokenPayload struct {
+	RefreshToken string   `json:"refresh_token"`
+	Services     []string `json:"services,omitempty"`
+	Scopes       string   `json:"scopes,omitempty"`
+	CreatedAt    int64    `json:"created_at,omitempty"`
+}
+
+func (cfg *Config) UserRefreshToken() string {
+	if cfg == nil {
+		return ""
+	}
+	if cfg.UserRefreshTokenPayload != nil && cfg.UserRefreshTokenPayload.RefreshToken != "" {
+		return cfg.UserRefreshTokenPayload.RefreshToken
+	}
+	return cfg.RefreshToken
 }
 
 func Default() *Config {
@@ -71,6 +98,21 @@ func DefaultPath() (string, error) {
 	return filepath.Join(home, ".config", "lark", "config.json"), nil
 }
 
+func DefaultPathForProfile(profile string) (string, error) {
+	name := strings.TrimSpace(profile)
+	if name == "" {
+		return "", errors.New("profile is required")
+	}
+	if strings.Contains(name, "..") || strings.Contains(name, "/") || strings.Contains(name, "\\") {
+		return "", fmt.Errorf("invalid profile %q", profile)
+	}
+	home, err := os.UserHomeDir()
+	if err != nil {
+		return "", err
+	}
+	return filepath.Join(home, ".config", "lark", "profiles", name, "config.json"), nil
+}
+
 func applyEnvFallback(cfg *Config) {
 	if cfg.AppID == "" {
 		if appID := os.Getenv("LARK_APP_ID"); appID != "" {
@@ -81,6 +123,9 @@ func applyEnvFallback(cfg *Config) {
 		if appSecret := os.Getenv("LARK_APP_SECRET"); appSecret != "" {
 			cfg.AppSecret = appSecret
 		}
+	}
+	if v, ok := os.LookupEnv("LARK_KEYRING_BACKEND"); ok {
+		cfg.KeyringBackend = v
 	}
 }
 
@@ -93,5 +138,20 @@ func normalizeDefaults(cfg *Config) {
 		cfg.DefaultTokenType = strings.ToLower(strings.TrimSpace(cfg.DefaultTokenType))
 	default:
 		cfg.DefaultTokenType = "tenant"
+	}
+
+	switch strings.ToLower(strings.TrimSpace(cfg.KeyringBackend)) {
+	case "", "auto":
+		// Keep behavior backward-compatible: default to file storage.
+		cfg.KeyringBackend = "file"
+	case "file", "keychain":
+		cfg.KeyringBackend = strings.ToLower(strings.TrimSpace(cfg.KeyringBackend))
+	default:
+		// Invalid values should not silently change behavior.
+		// Keep it as-is (so callers can surface an error if needed), but ensure we
+		// don't end up with empty.
+		if strings.TrimSpace(cfg.KeyringBackend) == "" {
+			cfg.KeyringBackend = "file"
+		}
 	}
 }
