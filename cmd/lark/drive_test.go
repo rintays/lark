@@ -135,7 +135,7 @@ func TestDriveSearchCommand(t *testing.T) {
 	state.SDK = sdkClient
 
 	cmd := newDriveCmd(state)
-	cmd.SetArgs([]string{"search", "--query", "budget", "--limit", "2", "--type", "docx", "--type", "sheet"})
+	cmd.SetArgs([]string{"search", "--query", "budget", "--folder-id", "root", "--limit", "2", "--type", "docx", "--type", "sheet"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("drive search error: %v", err)
 	}

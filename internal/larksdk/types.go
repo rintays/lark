@@ -73,10 +73,11 @@ type ListDriveFilesResult struct {
 }
 
 type SearchDriveFilesRequest struct {
-	Query     string
-	FileTypes []string
-	PageSize  int
-	PageToken string
+	Query       string
+	FileTypes   []string
+	FolderToken string
+	PageSize    int
+	PageToken   string
 }
 
 type SearchDriveFilesResult struct {
