@@ -31,7 +31,7 @@ Fast, script-friendly CLI for **Feishu (飞书)** / **Lark**.
 - **Contacts**
   - basic user lookup
 - **Meetings / Minutes**
-  - baseline read operations (see command help)
+  - meeting list/get + reservation create/update/delete
 
 ---
 
