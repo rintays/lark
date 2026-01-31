@@ -336,6 +336,21 @@ lark docs cat <DOCUMENT_ID> --format md
 lark docs cat <DOCUMENT_ID> --format txt
 ```
 
+Blocks:
+
+```bash
+lark docs blocks list <DOCUMENT_ID> --limit 50
+lark docs blocks get <DOCUMENT_ID> <BLOCK_ID>
+lark docs blocks update <DOCUMENT_ID> <BLOCK_ID> --body-json '<UPDATE_REQUEST_JSON>'
+```
+
+Markdown:
+
+```bash
+lark docs markdown convert --content "# Title"
+lark docs markdown overwrite <DOCUMENT_ID> --content-file ./doc.md
+```
+
 ### Sheets
 
 List:
