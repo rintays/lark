@@ -102,6 +102,7 @@ func newConfigSetCmd(state *appState) *cobra.Command {
 
 func newConfigUnsetCmd(state *appState) *cobra.Command {
 	var unsetBaseURL bool
+	var unsetDefaultMailboxID bool
 
 	cmd := &cobra.Command{
 		Use:   "unset",
@@ -110,24 +111,47 @@ func newConfigUnsetCmd(state *appState) *cobra.Command {
 			if state.Config == nil {
 				return errors.New("config is required")
 			}
-			if !unsetBaseURL {
-				return errors.New("--base-url is required")
+
+			useBaseURL := cmd.Flags().Changed("base-url")
+			useDefaultMailboxID := cmd.Flags().Changed("default-mailbox-id")
+			if !useBaseURL && !useDefaultMailboxID {
+				return errors.New("either --base-url or --default-mailbox-id is required")
 			}
 
-			state.Config.BaseURL = ""
-			state.baseURLPersist = ""
+			if useBaseURL {
+				if !unsetBaseURL {
+					return errors.New("--base-url must be true")
+				}
+				state.Config.BaseURL = ""
+				state.baseURLPersist = ""
+				if err := state.saveConfig(); err != nil {
+					return err
+				}
+				payload := map[string]any{
+					"config_path": state.ConfigPath,
+					"base_url":    "",
+				}
+				return state.Printer.Print(payload, fmt.Sprintf("cleared base_url in %s", state.ConfigPath))
+			}
+
+			if !unsetDefaultMailboxID {
+				return errors.New("--default-mailbox-id must be true")
+			}
+			state.Config.DefaultMailboxID = ""
 			if err := state.saveConfig(); err != nil {
 				return err
 			}
-
 			payload := map[string]any{
-				"config_path": state.ConfigPath,
-				"base_url":    "",
+				"config_path":        state.ConfigPath,
+				"default_mailbox_id": "",
 			}
-			return state.Printer.Print(payload, fmt.Sprintf("cleared base_url in %s", state.ConfigPath))
+			return state.Printer.Print(payload, fmt.Sprintf("cleared default_mailbox_id in %s", state.ConfigPath))
 		},
 	}
 	cmd.Flags().BoolVar(&unsetBaseURL, "base-url", false, "clear the persisted base URL")
+	cmd.Flags().BoolVar(&unsetDefaultMailboxID, "default-mailbox-id", false, "clear the persisted default mailbox id")
+	cmd.MarkFlagsMutuallyExclusive("base-url", "default-mailbox-id")
+	cmd.MarkFlagsOneRequired("base-url", "default-mailbox-id")
 
 	return cmd
 }
