@@ -191,6 +191,8 @@ Search files:
 lark drive search --query "budget" --limit 10 --type sheet --type docx --folder-id <FOLDER_TOKEN>
 ```
 
+Drive search uses a **user access token**. Make sure your app has `drive:drive` or `drive:drive:readonly` user scopes, then run `lark auth user login` to refresh user authorization.
+
 Download:
 
 ```bash
@@ -315,6 +317,39 @@ Create event:
 
 ```bash
 lark calendar create --summary "Weekly Sync" --start "2026-01-02T03:04:05Z" --end "2026-01-02T04:04:05Z" --attendee dev@example.com
+```
+
+---
+
+## User OAuth scopes (important)
+
+Manage default user OAuth scopes:
+
+```bash
+lark auth user scopes list
+lark auth user scopes set --scopes "offline_access drive:drive:readonly"
+lark auth user scopes add --scopes "drive:drive"
+lark auth user scopes remove --scopes "drive:drive:readonly"
+```
+
+Log in with explicit scopes:
+
+```bash
+lark auth user login --scopes "offline_access drive:drive:readonly" --force-consent
+```
+
+Service-style scopes (gog-like):
+
+```bash
+lark auth user services
+lark auth user login --services drive --drive-scope readonly --force-consent
+lark auth user login --services drive --drive-scope full --force-consent
+```
+
+Read-only shortcut:
+
+```bash
+lark auth user login --readonly --force-consent
 ```
 
 ---

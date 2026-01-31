@@ -140,11 +140,12 @@ func TestDriveListCommandLimitMustBePositiveDoesNotCallHTTP(t *testing.T) {
 }
 
 func TestDriveSearchCommand(t *testing.T) {
+	t.Setenv("LARK_USER_ACCESS_TOKEN", "")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/open-apis/drive/v1/files/search" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Header.Get("Authorization") != "Bearer token" {
+		if r.Header.Get("Authorization") != "Bearer user-token" {
 			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -152,8 +153,8 @@ func TestDriveSearchCommand(t *testing.T) {
 		if err := json.NewDecoder(r.Body).Decode(&payload); err != nil {
 			t.Fatalf("decode payload: %v", err)
 		}
-		if payload["query"] != "budget" {
-			t.Fatalf("unexpected query: %+v", payload)
+		if payload["search_key"] != "budget" {
+			t.Fatalf("unexpected search_key: %+v", payload)
 		}
 		if payload["folder_token"] != "root" {
 			t.Fatalf("unexpected folder_token: %+v", payload)
@@ -194,6 +195,8 @@ func TestDriveSearchCommand(t *testing.T) {
 			BaseURL:                    baseURL,
 			TenantAccessToken:          "token",
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+			UserAccessToken:            "user-token",
+			UserAccessTokenExpiresAt:   time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
 	}
@@ -215,11 +218,12 @@ func TestDriveSearchCommand(t *testing.T) {
 }
 
 func TestDriveSearchCommandSingleFileType(t *testing.T) {
+	t.Setenv("LARK_USER_ACCESS_TOKEN", "")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/open-apis/drive/v1/files/search" {
 			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		if r.Header.Get("Authorization") != "Bearer token" {
+		if r.Header.Get("Authorization") != "Bearer user-token" {
 			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -253,6 +257,8 @@ func TestDriveSearchCommandSingleFileType(t *testing.T) {
 			BaseURL:                    baseURL,
 			TenantAccessToken:          "token",
 			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+			UserAccessToken:            "user-token",
+			UserAccessTokenExpiresAt:   time.Now().Add(2 * time.Hour).Unix(),
 		},
 		Printer: output.Printer{Writer: &buf},
 	}
@@ -269,6 +275,57 @@ func TestDriveSearchCommandSingleFileType(t *testing.T) {
 	}
 
 	if !strings.Contains(buf.String(), "f9\tSpec\tdocx\thttps://example.com/doc") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestDriveSearchCommandUsesUserTokenEnv(t *testing.T) {
+	t.Setenv("LARK_USER_ACCESS_TOKEN", "env-token")
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.URL.Path != "/open-apis/drive/v1/files/search" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		if r.Header.Get("Authorization") != "Bearer env-token" {
+			t.Fatalf("unexpected authorization: %s", r.Header.Get("Authorization"))
+		}
+		w.Header().Set("Content-Type", "application/json")
+		_ = json.NewEncoder(w).Encode(map[string]any{
+			"code": 0,
+			"msg":  "ok",
+			"data": map[string]any{
+				"files":    []map[string]any{{"token": "f7", "name": "Note", "type": "docx", "url": "https://example.com/doc"}},
+				"has_more": false,
+			},
+		})
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "tenant-token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+			UserAccessToken:            "config-token",
+			UserAccessTokenExpiresAt:   time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"search", "--query", "note", "--limit", "1"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive search error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "f7\tNote\tdocx\thttps://example.com/doc") {
 		t.Fatalf("unexpected output: %q", buf.String())
 	}
 }

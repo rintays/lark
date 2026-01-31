@@ -27,7 +27,7 @@ const (
 	userOAuthCallbackPath   = "/oauth/callback"
 	userOAuthRedirectURL    = "http://localhost:17653/oauth/callback"
 	defaultUserOAuthScope   = "offline_access"
-	userOAuthReloginCommand = "lark auth user login --scope offline_access --force-consent"
+	userOAuthReloginCommand = "lark auth user login --scopes \"offline_access\" --force-consent"
 )
 
 type userOAuthToken struct {
@@ -52,13 +52,19 @@ func newAuthUserCmd(state *appState) *cobra.Command {
 	}
 	cmd.AddCommand(newAuthUserLoginCmd(state))
 	cmd.AddCommand(newAuthUserStatusCmd(state))
+	cmd.AddCommand(newAuthUserScopesCmd(state))
+	cmd.AddCommand(newAuthUserServicesCmd(state))
 	return cmd
 }
 
 func newAuthUserLoginCmd(state *appState) *cobra.Command {
-	var scope string
-	var timeout time.Duration
+	var scopes string
+	var legacyScope string
+	var services []string
+	var readonly bool
+	var driveScope string
 	var forceConsent bool
+	var timeout time.Duration
 
 	cmd := &cobra.Command{
 		Use:   "login",
@@ -67,11 +73,41 @@ func newAuthUserLoginCmd(state *appState) *cobra.Command {
 			if err := requireCredentials(state.Config); err != nil {
 				return err
 			}
+			scopeSet := cmd.Flags().Changed("scopes")
+			legacyScopeSet := cmd.Flags().Changed("scope")
+			if scopeSet && legacyScopeSet {
+				return errors.New("--scope and --scopes cannot be used together")
+			}
+			if legacyScopeSet {
+				scopes = legacyScope
+				scopeSet = true
+			}
+			if scopeSet {
+				if cmd.Flags().Changed("services") || cmd.Flags().Changed("readonly") || cmd.Flags().Changed("drive-scope") {
+					return errors.New("--scopes cannot be combined with --services, --readonly, or --drive-scope")
+				}
+			}
+
+			scopeOpts := userOAuthScopeOptions{
+				Scopes:        scopes,
+				ScopesSet:     scopeSet,
+				Services:      parseServicesList(services),
+				ServicesSet:   cmd.Flags().Changed("services"),
+				Readonly:      readonly,
+				DriveScope:    driveScope,
+				DriveScopeSet: cmd.Flags().Changed("drive-scope"),
+			}
+			scopeList, _, err := resolveUserOAuthScopes(state, scopeOpts)
+			if err != nil {
+				return err
+			}
+			scopeValue := joinScopes(scopeList)
+
 			authState, err := newOAuthState()
 			if err != nil {
 				return err
 			}
-			authorizeURL, err := buildUserAuthorizeURL(state.Config.BaseURL, state.Config.AppID, userOAuthRedirectURL, authState, userOAuthScope(scope, cmd.Flags().Changed("scope")), userOAuthPrompt(forceConsent))
+			authorizeURL, err := buildUserAuthorizeURL(state.Config.BaseURL, state.Config.AppID, userOAuthRedirectURL, authState, scopeValue, userOAuthPrompt(forceConsent))
 			if err != nil {
 				return err
 			}
@@ -121,6 +157,7 @@ func newAuthUserLoginCmd(state *appState) *cobra.Command {
 			state.Config.UserAccessToken = tokens.AccessToken
 			state.Config.RefreshToken = tokens.RefreshToken
 			state.Config.UserAccessTokenExpiresAt = time.Now().Add(time.Duration(tokens.ExpiresIn) * time.Second).Unix()
+			state.Config.UserScopes = scopeList
 			if err := state.saveConfig(); err != nil {
 				return err
 			}
@@ -144,8 +181,12 @@ func newAuthUserLoginCmd(state *appState) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&scope, "scope", "", "OAuth scopes (space-separated)")
-	cmd.Flags().BoolVar(&forceConsent, "force-consent", false, "force showing the consent screen")
+	cmd.Flags().StringVar(&legacyScope, "scope", "", "OAuth scopes (space-separated) (deprecated: use --scopes)")
+	cmd.Flags().StringVar(&scopes, "scopes", "", "OAuth scopes (space/comma-separated)")
+	cmd.Flags().StringSliceVar(&services, "services", nil, "OAuth service set (comma-separated, use `lark auth user services`)")
+	cmd.Flags().BoolVar(&readonly, "readonly", false, "use read-only OAuth scopes for selected services")
+	cmd.Flags().StringVar(&driveScope, "drive-scope", "", "drive scope (full or readonly)")
+	cmd.Flags().BoolVar(&forceConsent, "force-consent", false, "force the consent screen during OAuth")
 	cmd.Flags().DurationVar(&timeout, "timeout", 2*time.Minute, "timeout waiting for OAuth callback")
 
 	return cmd
@@ -157,13 +198,6 @@ func newOAuthState() (string, error) {
 		return "", err
 	}
 	return base64.RawURLEncoding.EncodeToString(buf), nil
-}
-
-func userOAuthScope(scope string, scopeSet bool) string {
-	if !scopeSet {
-		return defaultUserOAuthScope
-	}
-	return scope
 }
 
 func canonicalScopeString(scope string) string {
@@ -208,7 +242,6 @@ func userOAuthPrompt(forceConsent bool) string {
 	}
 	return ""
 }
-
 func buildUserAuthorizeURL(baseURL, appID, redirectURI, state, scope, prompt string) (string, error) {
 	base, err := url.Parse(baseURL)
 	if err != nil {

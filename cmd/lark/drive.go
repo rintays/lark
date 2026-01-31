@@ -111,7 +111,8 @@ func newDriveSearchCmd(state *appState) *cobra.Command {
 			if limit <= 0 {
 				return errors.New("limit must be greater than 0")
 			}
-			token, err := tokenFor(context.Background(), state, tokenTypesTenantOrUser)
+			ctx := context.Background()
+			token, err := resolveDriveSearchToken(ctx, state)
 			if err != nil {
 				return err
 			}
@@ -126,7 +127,7 @@ func newDriveSearchCmd(state *appState) *cobra.Command {
 				if pageSize > maxDrivePageSize {
 					pageSize = maxDrivePageSize
 				}
-				result, err := state.SDK.SearchDriveFiles(context.Background(), token, larksdk.SearchDriveFilesRequest{
+				result, err := state.SDK.SearchDriveFilesWithUserToken(ctx, token, larksdk.SearchDriveFilesRequest{
 					Query:       query,
 					FolderToken: folderID,
 					FileTypes:   fileTypes,
@@ -134,7 +135,7 @@ func newDriveSearchCmd(state *appState) *cobra.Command {
 					PageToken:   pageToken,
 				})
 				if err != nil {
-					return err
+					return withUserScopeHint(err)
 				}
 				files = append(files, result.Files...)
 				if len(files) >= limit || !result.HasMore {

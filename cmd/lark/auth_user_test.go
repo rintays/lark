@@ -9,6 +9,8 @@ import (
 	"net/url"
 	"strings"
 	"testing"
+
+	"lark/internal/config"
 )
 
 func TestBuildUserAuthorizeURL(t *testing.T) {
@@ -44,7 +46,7 @@ func TestBuildUserAuthorizeURL(t *testing.T) {
 	}
 }
 
-func TestBuildUserAuthorizeURLForceConsentAddsPrompt(t *testing.T) {
+func TestBuildUserAuthorizeURLWithPrompt(t *testing.T) {
 	urlStr, err := buildUserAuthorizeURL("https://open.feishu.cn", "app-id", userOAuthRedirectURL, "state123", "offline_access", "consent")
 	if err != nil {
 		t.Fatalf("build authorize url: %v", err)
@@ -53,23 +55,55 @@ func TestBuildUserAuthorizeURLForceConsentAddsPrompt(t *testing.T) {
 	if err != nil {
 		t.Fatalf("parse authorize url: %v", err)
 	}
-	query := parsed.Query()
-	if query.Get("prompt") != "consent" {
-		t.Fatalf("expected prompt=consent, got %q", query.Get("prompt"))
+	if parsed.Query().Get("prompt") != "consent" {
+		t.Fatalf("unexpected prompt: %s", parsed.Query().Get("prompt"))
 	}
 }
 
-func TestUserOAuthScopeDefaultsToOfflineAccess(t *testing.T) {
-	scope := userOAuthScope("", false)
-	if scope != defaultUserOAuthScope {
-		t.Fatalf("expected default scope %q, got %q", defaultUserOAuthScope, scope)
+func TestResolveUserOAuthScopesDefaultsToOfflineAccess(t *testing.T) {
+	state := &appState{Config: config.Default()}
+	scopes, source, err := resolveUserOAuthScopes(state, userOAuthScopeOptions{})
+	if err != nil {
+		t.Fatalf("resolve scopes: %v", err)
+	}
+	if len(scopes) != 1 || scopes[0] != defaultUserOAuthScope {
+		t.Fatalf("unexpected scopes: %v", scopes)
+	}
+	if source != "default" {
+		t.Fatalf("unexpected source: %s", source)
 	}
 }
 
-func TestUserOAuthScopeRespectsExplicitScope(t *testing.T) {
-	scope := userOAuthScope("contact:contact.base:readonly", true)
-	if scope != "contact:contact.base:readonly" {
-		t.Fatalf("expected explicit scope, got %q", scope)
+func TestResolveUserOAuthScopesFromConfig(t *testing.T) {
+	state := &appState{Config: &config.Config{UserScopes: []string{"offline_access", "drive:drive"}}}
+	scopes, source, err := resolveUserOAuthScopes(state, userOAuthScopeOptions{})
+	if err != nil {
+		t.Fatalf("resolve scopes: %v", err)
+	}
+	if source != "config" {
+		t.Fatalf("unexpected source: %s", source)
+	}
+	if strings.Join(scopes, " ") != "offline_access drive:drive" {
+		t.Fatalf("unexpected scopes: %v", scopes)
+	}
+}
+
+func TestResolveUserOAuthScopesFromServicesReadonly(t *testing.T) {
+	state := &appState{Config: config.Default()}
+	opts := userOAuthScopeOptions{
+		Services:    []string{"drive"},
+		ServicesSet: true,
+		Readonly:    true,
+	}
+	scopes, source, err := resolveUserOAuthScopes(state, opts)
+	if err != nil {
+		t.Fatalf("resolve scopes: %v", err)
+	}
+	if source != "services" {
+		t.Fatalf("unexpected source: %s", source)
+	}
+	if strings.Join(scopes, " ") != "offline_access drive:drive:readonly" {
+		t.Fatalf("unexpected scopes: %v", scopes)
 	}
 }
 
