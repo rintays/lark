@@ -300,7 +300,7 @@ func newMailListCmd(state *appState) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID")
+	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID (defaults to config default_mailbox_id or 'me')")
 	cmd.Flags().StringVar(&folderID, "folder-id", "", "filter by folder ID")
 	cmd.Flags().IntVar(&limit, "limit", 20, "max number of messages to return")
 	cmd.Flags().BoolVar(&onlyUnread, "only-unread", false, "only return unread messages")
@@ -346,7 +346,7 @@ func newMailGetCmd(state *appState) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID")
+	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID (defaults to config default_mailbox_id or 'me')")
 	cmd.Flags().StringVar(&messageID, "message-id", "", "message ID (or provide as positional argument)")
 	_ = cmd.MarkFlagRequired("message-id")
 	return cmd
@@ -412,7 +412,7 @@ func newMailSendCmd(state *appState) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID")
+	cmd.Flags().StringVar(&mailboxID, "mailbox-id", "", "user mailbox ID (defaults to config default_mailbox_id or 'me')")
 	cmd.Flags().StringVar(&subject, "subject", "", "message subject")
 	cmd.Flags().StringArrayVar(&to, "to", nil, "recipient email (repeatable)")
 	cmd.Flags().StringArrayVar(&cc, "cc", nil, "cc email (repeatable)")
