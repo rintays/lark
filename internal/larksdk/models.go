@@ -118,6 +118,25 @@ type GetMeetingRequest struct {
 	QueryMode          int
 }
 
+type MeetingListItem struct {
+	ID        string `json:"id"`
+	Topic     string `json:"topic"`
+	Status    *int   `json:"status,omitempty"`
+	StartTime string `json:"start_time"`
+	EndTime   string `json:"end_time"`
+}
+
+type ListMeetingsRequest struct {
+	PageSize  int
+	PageToken string
+}
+
+type ListMeetingsResult struct {
+	Items     []MeetingListItem
+	PageToken string
+	HasMore   bool
+}
+
 type User struct {
 	UserID string `json:"user_id"`
 	OpenID string `json:"open_id"`

@@ -23,6 +23,30 @@ func (r *getMeetingResponse) Success() bool {
 	return r.Code == 0
 }
 
+type listMeetingsResponse struct {
+	*larkcore.ApiResp `json:"-"`
+	larkcore.CodeError
+	Data *listMeetingsResponseData `json:"data"`
+}
+
+type listMeetingsResponseData struct {
+	MeetingList []*meetingListInfo `json:"meeting_list"`
+	PageToken   *string            `json:"page_token"`
+	HasMore     *bool              `json:"has_more"`
+}
+
+type meetingListInfo struct {
+	ID        *string `json:"meeting_id"`
+	Topic     *string `json:"meeting_topic"`
+	Status    *int    `json:"meeting_status,omitempty"`
+	StartTime *string `json:"meeting_start_time"`
+	EndTime   *string `json:"meeting_end_time"`
+}
+
+func (r *listMeetingsResponse) Success() bool {
+	return r.Code == 0
+}
+
 func (c *Client) GetMeeting(ctx context.Context, token string, req GetMeetingRequest) (Meeting, error) {
 	if !c.available() || c.coreConfig == nil {
 		return Meeting{}, ErrUnavailable
@@ -74,4 +98,80 @@ func (c *Client) GetMeeting(ctx context.Context, token string, req GetMeetingReq
 		return Meeting{}, errors.New("get meeting response missing meeting")
 	}
 	return *resp.Data.Meeting, nil
+}
+
+func (c *Client) ListMeetings(ctx context.Context, token string, req ListMeetingsRequest) (ListMeetingsResult, error) {
+	if !c.available() || c.coreConfig == nil {
+		return ListMeetingsResult{}, ErrUnavailable
+	}
+	tenantToken := c.tenantToken(token)
+	if tenantToken == "" {
+		return ListMeetingsResult{}, errors.New("tenant access token is required")
+	}
+
+	apiReq := &larkcore.ApiReq{
+		ApiPath:                   "/open-apis/vc/v1/meeting_list",
+		HttpMethod:                http.MethodGet,
+		PathParams:                larkcore.PathParams{},
+		QueryParams:               larkcore.QueryParams{},
+		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant, larkcore.AccessTokenTypeUser},
+	}
+	if req.PageSize > 0 {
+		apiReq.QueryParams.Set("page_size", fmt.Sprintf("%d", req.PageSize))
+	}
+	if req.PageToken != "" {
+		apiReq.QueryParams.Set("page_token", req.PageToken)
+	}
+
+	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithTenantAccessToken(tenantToken))
+	if err != nil {
+		return ListMeetingsResult{}, err
+	}
+	if apiResp == nil {
+		return ListMeetingsResult{}, errors.New("list meetings failed: empty response")
+	}
+	resp := &listMeetingsResponse{ApiResp: apiResp}
+	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
+		return ListMeetingsResult{}, err
+	}
+	if !resp.Success() {
+		return ListMeetingsResult{}, fmt.Errorf("list meetings failed: %s", resp.Msg)
+	}
+
+	result := ListMeetingsResult{}
+	if resp.Data != nil {
+		if resp.Data.MeetingList != nil {
+			result.Items = make([]MeetingListItem, 0, len(resp.Data.MeetingList))
+			for _, meeting := range resp.Data.MeetingList {
+				if meeting == nil {
+					continue
+				}
+				item := MeetingListItem{}
+				if meeting.ID != nil {
+					item.ID = *meeting.ID
+				}
+				if meeting.Topic != nil {
+					item.Topic = *meeting.Topic
+				}
+				if meeting.Status != nil {
+					status := *meeting.Status
+					item.Status = &status
+				}
+				if meeting.StartTime != nil {
+					item.StartTime = *meeting.StartTime
+				}
+				if meeting.EndTime != nil {
+					item.EndTime = *meeting.EndTime
+				}
+				result.Items = append(result.Items, item)
+			}
+		}
+		if resp.Data.PageToken != nil {
+			result.PageToken = *resp.Data.PageToken
+		}
+		if resp.Data.HasMore != nil {
+			result.HasMore = *resp.Data.HasMore
+		}
+	}
+	return result, nil
 }
