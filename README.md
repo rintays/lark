@@ -129,6 +129,7 @@ Clear user access tokens:
 ```bash
 lark config unset --user-tokens
 ```
+Clears all stored user OAuth tokens (file or keychain).
 
 ### 2) Get tenant token
 
@@ -495,6 +496,30 @@ Read-only shortcut:
 lark auth user login --readonly --force-consent
 ```
 
+Manage user OAuth accounts:
+
+```bash
+lark auth user accounts list
+lark auth user accounts set <ACCOUNT>
+lark auth user accounts remove <ACCOUNT>
+```
+
+Set default via config:
+
+```bash
+lark config set --default-user-account <ACCOUNT>
+```
+
+Select an account per command:
+
+```bash
+lark --account <ACCOUNT> auth user status
+```
+
+Environment override: `LARK_ACCOUNT`.
+
+Token storage backend: `keyring_backend=file|keychain` (config).
+
 Explain auth requirements (services → token types/scopes) for a command:
 
 ```bash
@@ -530,7 +555,9 @@ Example:
 ./lark bases table create --help
 ./lark bases field list --help
 ./lark bases field create --help
+./lark bases field types --help
 ./lark bases view list --help
+./lark bases view create --help
 ./lark bases record create --help
 ./lark bases record info --help
 ./lark bases record search --help
@@ -576,6 +603,7 @@ Behavior:
 - If an API supports **only one** token type, the CLI uses it automatically and errors if you explicitly request the other.
 - If an API supports **both**, `--token-type=auto` uses `config.default_token_type` (default: `tenant`).
 - When `user` is selected and no user token is available, the CLI guides you to run `lark auth user login` with recommended `--scopes` (derived from the command→service registry).
+- When using user tokens, the selected account comes from `--account`, `LARK_ACCOUNT`, or `config.default_user_account`.
 
 ---
 
