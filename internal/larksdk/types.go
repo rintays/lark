@@ -144,6 +144,11 @@ type BaseRecord struct {
 	LastModifiedTime string         `json:"last_modified_time"`
 }
 
+type BaseRecordUpdate struct {
+	RecordID string         `json:"record_id"`
+	Fields   map[string]any `json:"fields"`
+}
+
 type BaseRecordDeleteResult struct {
 	RecordID string `json:"record_id"`
 	Deleted  bool   `json:"deleted"`
