@@ -585,7 +585,7 @@ func TestDriveGetMissingFileTokenDoesNotCallHTTP(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error")
 	}
-	if !strings.Contains(err.Error(), "file-token") {
+	if err.Error() != "required flag(s) \"file-token\" not set" {
 		t.Fatalf("unexpected error: %v", err)
 	}
 }

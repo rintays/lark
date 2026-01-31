@@ -196,17 +196,16 @@ func newDriveGetCmd(state *appState) *cobra.Command {
 		Use:   "get <file-token>",
 		Short: "Get Drive file metadata",
 		Args: func(cmd *cobra.Command, args []string) error {
-			if len(args) > 1 {
-				return cobra.MaximumNArgs(1)(cmd, args)
+			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
+				return err
 			}
 			if len(args) > 0 {
 				if fileToken != "" && fileToken != args[0] {
 					return errors.New("file-token provided twice")
 				}
-				fileToken = args[0]
-			}
-			if fileToken == "" {
-				return errors.New("file-token is required")
+				if err := cmd.Flags().Set("file-token", args[0]); err != nil {
+					return err
+				}
 			}
 			return nil
 		},
@@ -231,6 +230,7 @@ func newDriveGetCmd(state *appState) *cobra.Command {
 	}
 
 	cmd.Flags().StringVar(&fileToken, "file-token", "", "Drive file token (or provide as positional argument)")
+	_ = cmd.MarkFlagRequired("file-token")
 	return cmd
 }
 
