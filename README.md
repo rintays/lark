@@ -361,4 +361,4 @@ Items not finished yet (high-level):
 - **Integration tests:** `*_integration_test.go` suite gated by `LARK_INTEGRATION=1`
 
 For the full detailed task breakdown, see:
-- `<workspace>/BACKLOG.md`
+- `<workspace>/lark/BACKLOG.md`
