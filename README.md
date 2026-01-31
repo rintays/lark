@@ -221,6 +221,12 @@ Insert rows:
 lark sheets rows insert --spreadsheet-id <SPREADSHEET_TOKEN> --sheet-id <SHEET_ID> --start-index 1 --count 2
 ```
 
+Insert cols:
+
+```bash
+lark sheets cols insert --spreadsheet-id <SPREADSHEET_TOKEN> --sheet-id <SHEET_ID> --start-index 1 --count 2
+```
+
 ### Calendar
 
 List events:
