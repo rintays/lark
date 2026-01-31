@@ -80,4 +80,6 @@
 - 2026-01-31: Messages list now renders system templates, formats mentions with user id links, drops chat id from meta, and shows metadata before content.
 - 2026-01-31: Chat announcement docx output now renders text content from announcement blocks in CLI output.
 - 2026-01-31: Expanded `lark chats get` output with chat metadata plus member previews (new `--members-limit`/`--members-page-size` flags) and updated README/tests.
+- 2026-01-31: Mail send now supports raw EML input via `--raw`/`--raw-file` (base64url), with updated CLI validation and examples.
+- 2026-01-31: Added `lark sheets delete` command backed by Drive delete, with README/design coverage and tests.
 - 2026-01-31: Adjusted Sheets dimension payloads for better API compatibility, switched columns to COLUMNS, clarified sheet range help/examples, normalized sheets create folder-id root handling, and clarified user token help/error text for Sheets search.
