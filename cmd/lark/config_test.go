@@ -285,3 +285,55 @@ func TestConfigUnsetDefaultMailboxIDClearsConfig(t *testing.T) {
 		t.Fatalf("expected default_mailbox_id cleared, got %q", saved.DefaultMailboxID)
 	}
 }
+
+func TestConfigUnsetUserTokensClearsConfig(t *testing.T) {
+	configPath := filepath.Join(t.TempDir(), "config.json")
+	state := &appState{
+		ConfigPath: configPath,
+		Config:     config.Default(),
+		Printer:    output.Printer{Writer: io.Discard},
+	}
+	state.Config.UserAccessToken = "user-token"
+	state.Config.RefreshToken = "refresh-token"
+	state.Config.UserAccessTokenExpiresAt = 1700000100
+
+	cmd := newConfigCmd(state)
+	cmd.SetArgs([]string{"unset", "--user-tokens"})
+
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("config unset error: %v", err)
+	}
+
+	data, err := os.ReadFile(configPath)
+	if err != nil {
+		t.Fatalf("read config: %v", err)
+	}
+	var saved config.Config
+	if err := json.Unmarshal(data, &saved); err != nil {
+		t.Fatalf("unmarshal config: %v", err)
+	}
+	if saved.UserAccessToken != "" {
+		t.Fatalf("expected user_access_token cleared, got %q", saved.UserAccessToken)
+	}
+	if saved.RefreshToken != "" {
+		t.Fatalf("expected refresh_token cleared, got %q", saved.RefreshToken)
+	}
+	if saved.UserAccessTokenExpiresAt != 0 {
+		t.Fatalf("expected user_access_token_expires_at cleared, got %d", saved.UserAccessTokenExpiresAt)
+	}
+}
+
+func TestConfigUnsetUserTokensAndDefaultMailboxIDErrors(t *testing.T) {
+	state := &appState{
+		ConfigPath: filepath.Join(t.TempDir(), "config.json"),
+		Config:     config.Default(),
+		Printer:    output.Printer{Writer: io.Discard},
+	}
+
+	cmd := newConfigCmd(state)
+	cmd.SetArgs([]string{"unset", "--user-tokens", "--default-mailbox-id"})
+
+	if err := cmd.Execute(); err == nil {
+		t.Fatalf("expected config unset error for user-tokens and default-mailbox-id")
+	}
+}
