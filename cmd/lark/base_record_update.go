@@ -18,6 +18,24 @@ func newBaseRecordUpdateCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "update <table-id> <record-id>",
 		Short: "Update a Bitable record",
+		Long: `Update a Bitable record.
+
+Provide fields via --fields-json (JSON object) or repeatable --field. Use := to pass JSON-typed values; = always sends a string.
+
+Value formats (write):
+- text/email/barcode: "text"
+- number/progress/currency/rating: 12.3
+- single select: "Option"
+- multi select: ["A","B"]
+- date: 1674206443000 (ms)
+- checkbox: true|false
+- user: [{"id":"ou_x"}]
+- group: [{"id":"oc_x"}]
+- phone: "1302616xxxx"
+- url: {"text":"Feishu","link":"https://..."}
+- attachment: [{"file_token":"xxx"}]
+- link/duplex link: ["rec_x","rec_y"]
+- location: "116.397755,39.903179"`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(2)(cmd, args); err != nil {
 				return err
@@ -74,8 +92,11 @@ func newBaseRecordUpdateCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&appToken, "app-token", "", "Bitable app token")
 	cmd.Flags().StringVar(&tableID, "table-id", "", "Bitable table id (or provide as positional argument)")
 	cmd.Flags().StringVar(&recordID, "record-id", "", "Bitable record id (or provide as positional argument)")
-	cmd.Flags().StringVar(&fieldsJSON, "fields-json", "", "Record fields JSON (object)")
-	cmd.Flags().StringArrayVar(&fields, "field", nil, "Record field assignment (repeatable, e.g. --field Title=Task or --field name=Title,value=Task or --field Temp:=12.3)")
+	cmd.Flags().StringVar(&fieldsJSON, "fields-json", "", `Record fields JSON object (full typed payload; quote for shell).
+Example: {"Title":"Task","Done":true,"Score":3.5,"Tags":["A","B"],"Owner":[{"id":"ou_x"}]}`)
+	cmd.Flags().StringArrayVar(&fields, "field", nil, `Record field assignment (repeatable; use := for JSON-typed values).
+Formats: <name>=<string>, <name>:=<json>, or name=<field>,value=<value> (value:=<json>).
+Examples: --field Title=Task --field Done:=true --field Score:=3.5 --field Tags:='["A","B"]' --field Owner:='[{"id":"ou_x"}]'`)
 	_ = cmd.MarkFlagRequired("app-token")
 	return cmd
 }
