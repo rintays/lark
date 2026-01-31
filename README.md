@@ -386,6 +386,8 @@ Example:
 ./lark base record search --help
 ./lark base record update --help
 ./lark base record delete --help
+./lark wiki member list --help
+./lark wiki member delete --help
 ./lark wiki node search --help
 ./lark mail mailbox get --help
 ./lark mail mailbox set --mailbox-id <MAILBOX_ID>

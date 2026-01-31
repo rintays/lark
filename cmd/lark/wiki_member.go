@@ -17,6 +17,7 @@ func newWikiMemberCmd(state *appState) *cobra.Command {
 		Short: "Manage Wiki members",
 	}
 	cmd.AddCommand(newWikiMemberListCmd(state))
+	cmd.AddCommand(newWikiMemberDeleteCmd(state))
 	return cmd
 }
 
@@ -91,5 +92,50 @@ func newWikiMemberListCmd(state *appState) *cobra.Command {
 	cmd.Flags().IntVar(&limit, "limit", 50, "max number of members to return")
 	cmd.Flags().IntVar(&pageSize, "page-size", 0, "page size (default: auto)")
 	_ = cmd.MarkFlagRequired("space-id")
+	return cmd
+}
+
+func newWikiMemberDeleteCmd(state *appState) *cobra.Command {
+	var spaceID string
+	var memberType string
+	var memberID string
+
+	cmd := &cobra.Command{
+		Use:   "delete",
+		Short: "Delete a Wiki space member (v2)",
+		Args:  cobra.NoArgs,
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if state.SDK == nil {
+				return errors.New("sdk client is required")
+			}
+			accessToken, err := tokenFor(context.Background(), state, tokenTypesTenantOrUser)
+			if err != nil {
+				return err
+			}
+
+			member, err := state.SDK.DeleteWikiSpaceMemberV2(context.Background(), accessToken, larksdk.DeleteWikiSpaceMemberRequest{
+				SpaceID:    strings.TrimSpace(spaceID),
+				MemberType: strings.TrimSpace(memberType),
+				MemberID:   strings.TrimSpace(memberID),
+			})
+			if err != nil {
+				return err
+			}
+
+			payload := map[string]any{"deleted": true, "member": member}
+			text := "deleted"
+			if member.MemberID != "" {
+				text = member.MemberID
+			}
+			return state.Printer.Print(payload, text)
+		},
+	}
+
+	cmd.Flags().StringVar(&spaceID, "space-id", "", "Wiki space ID")
+	cmd.Flags().StringVar(&memberType, "member-type", "", "member type (userid, email, openid, unionid, openchat, opendepartmentid)")
+	cmd.Flags().StringVar(&memberID, "member-id", "", "member id")
+	_ = cmd.MarkFlagRequired("space-id")
+	_ = cmd.MarkFlagRequired("member-type")
+	_ = cmd.MarkFlagRequired("member-id")
 	return cmd
 }
