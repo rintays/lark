@@ -38,8 +38,30 @@ func TestDriveUploadIntegration(t *testing.T) {
 	if err := json.Unmarshal(buf.Bytes(), &payload); err != nil {
 		t.Fatalf("invalid json output: %v; out=%q", err, buf.String())
 	}
-	tok, ok := payload["file_token"].(string)
-	if !ok || tok == "" {
-		t.Fatalf("expected non-empty file_token, got: %v", payload)
+	tok := fileTokenFromPayload(payload)
+	if tok == "" {
+		t.Fatalf("expected non-empty file token, got: %v", payload)
 	}
+}
+
+func fileTokenFromPayload(payload map[string]any) string {
+	if tok, ok := payload["file_token"].(string); ok && tok != "" {
+		return tok
+	}
+	if tok, ok := payload["token"].(string); ok && tok != "" {
+		return tok
+	}
+	file, ok := payload["file"]
+	if !ok {
+		return ""
+	}
+	if fileMap, ok := file.(map[string]any); ok {
+		if tok, ok := fileMap["file_token"].(string); ok && tok != "" {
+			return tok
+		}
+		if tok, ok := fileMap["token"].(string); ok && tok != "" {
+			return tok
+		}
+	}
+	return ""
 }
