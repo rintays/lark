@@ -37,12 +37,6 @@ func newWikiNodeInfoCmd(state *appState) *cobra.Command {
 					return err
 				}
 			}
-			if strings.TrimSpace(nodeToken) == "" {
-				return errors.New("node-token is required")
-			}
-			if strings.TrimSpace(objType) == "" {
-				return errors.New("obj-type is required")
-			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
