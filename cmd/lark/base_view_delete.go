@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"strconv"
-	"strings"
 
 	"github.com/spf13/cobra"
 )
@@ -37,12 +36,6 @@ func newBaseViewDeleteCmd(state *appState) *cobra.Command {
 					return err
 				}
 			}
-			if strings.TrimSpace(tableID) == "" {
-				return errors.New("table-id is required")
-			}
-			if strings.TrimSpace(viewID) == "" {
-				return errors.New("view-id is required")
-			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -67,5 +60,7 @@ func newBaseViewDeleteCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&tableID, "table-id", "", "Bitable table id (or provide as positional argument)")
 	cmd.Flags().StringVar(&viewID, "view-id", "", "Bitable view id (or provide as positional argument)")
 	_ = cmd.MarkFlagRequired("app-token")
+	_ = cmd.MarkFlagRequired("table-id")
+	_ = cmd.MarkFlagRequired("view-id")
 	return cmd
 }

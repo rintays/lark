@@ -37,12 +37,6 @@ func newBaseViewCreateCmd(state *appState) *cobra.Command {
 					return err
 				}
 			}
-			if strings.TrimSpace(tableID) == "" {
-				return errors.New("table-id is required")
-			}
-			if strings.TrimSpace(viewName) == "" {
-				return errors.New("name is required")
-			}
 			if strings.TrimSpace(viewType) == "" {
 				_ = cmd.Flags().Set("view-type", "grid")
 			}
@@ -71,5 +65,7 @@ func newBaseViewCreateCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&viewName, "name", "", "View name (or provide as positional argument)")
 	cmd.Flags().StringVar(&viewType, "view-type", "grid", "View type (grid|kanban|gallery|gantt|form)")
 	_ = cmd.MarkFlagRequired("app-token")
+	_ = cmd.MarkFlagRequired("table-id")
+	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }
