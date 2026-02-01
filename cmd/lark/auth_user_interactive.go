@@ -6,7 +6,11 @@ import (
 	"os"
 	"strings"
 
+	"github.com/charmbracelet/bubbles/help"
+	"github.com/charmbracelet/bubbles/key"
+	"github.com/charmbracelet/bubbles/list"
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
 	"github.com/mattn/go-isatty"
 
 	"lark/internal/authregistry"
@@ -40,10 +44,7 @@ func promptUserOAuthSelection(state *appState, account string) (userOAuthInterac
 		defaultMode = userOAuthSelectScopes
 	}
 
-	modeIndex, canceled, err := runSingleSelect("Choose OAuth selection mode", []string{
-		"Select by service (recommended)",
-		"Select by scope",
-	}, modeIndexFor(defaultMode))
+	modeIndex, canceled, err := runModeSelect(defaultMode)
 	if err != nil {
 		return userOAuthInteractiveSelection{}, err
 	}
@@ -79,7 +80,7 @@ func previousUserOAuthSelections(state *appState, account string) ([]string, []s
 		return nil, nil
 	}
 	acct, ok := loadUserAccount(state.Config, account)
-	if !ok || acct == nil {
+	if !ok {
 		return nil, nil
 	}
 	var services []string
@@ -101,13 +102,6 @@ func previousUserOAuthSelections(state *appState, account string) ([]string, []s
 	return services, scopes
 }
 
-func modeIndexFor(mode userOAuthSelectionMode) int {
-	if mode == userOAuthSelectScopes {
-		return 1
-	}
-	return 0
-}
-
 func promptUserOAuthServices(previous []string) ([]string, error) {
 	services := authregistry.ListUserOAuthServices()
 	if len(services) == 0 {
@@ -123,29 +117,23 @@ func promptUserOAuthServices(previous []string) ([]string, error) {
 		selectedSet[svc] = struct{}{}
 	}
 
-	items := make([]selectItem, 0, len(services))
+	items := make([]optionItem, 0, len(services))
 	for _, svc := range services {
 		_, selected := selectedSet[svc]
-		items = append(items, selectItem{
+		items = append(items, optionItem{
 			Label:    svc,
 			Value:    svc,
 			Selected: selected,
 		})
 	}
 
-	model := &multiSelectModel{
-		title:      "Select OAuth services",
-		items:      items,
-		allowEmpty: false,
-	}
-	result, err := runMultiSelect(model)
+	selected, canceled, err := runMultiSelect("Select OAuth services", items, false)
 	if err != nil {
 		return nil, err
 	}
-	if result.canceled {
+	if canceled {
 		return nil, errors.New("login canceled")
 	}
-	selected := result.selectedValues()
 	if len(selected) == 0 {
 		return nil, errors.New("no services selected")
 	}
@@ -169,36 +157,26 @@ func promptUserOAuthScopes(state *appState, previous []string) ([]string, error)
 		selectedSet[scope] = struct{}{}
 	}
 
-	items := make([]selectItem, 0, len(available))
+	items := make([]optionItem, 0, len(available))
 	for _, scope := range available {
 		_, selected := selectedSet[scope]
 		locked := scope == defaultUserOAuthScope
-		label := scope
-		if locked {
-			label = fmt.Sprintf("%s (required)", scope)
-			selected = true
-		}
-		items = append(items, selectItem{
-			Label:    label,
+		items = append(items, optionItem{
+			Label:    scope,
 			Value:    scope,
-			Selected: selected,
+			Selected: selected || locked,
 			Locked:   locked,
+			Tag:      "required",
 		})
 	}
 
-	model := &multiSelectModel{
-		title:      "Select OAuth scopes",
-		items:      items,
-		allowEmpty: true,
-	}
-	result, err := runMultiSelect(model)
+	selected, canceled, err := runMultiSelect("Select OAuth scopes", items, true)
 	if err != nil {
 		return nil, err
 	}
-	if result.canceled {
+	if canceled {
 		return nil, errors.New("login canceled")
 	}
-	selected := result.selectedValues()
 	selected = ensureOfflineAccess(selected)
 	return canonicalizeUserOAuthScopes(selected), nil
 }
@@ -218,140 +196,34 @@ func appendMissingScopes(available []string, defaults []string) []string {
 	return available
 }
 
-type selectItem struct {
-	Label    string
-	Value    string
-	Selected bool
-	Locked   bool
-}
+func runModeSelect(defaultMode userOAuthSelectionMode) (int, bool, error) {
+	delegate := brandDelegate()
+	delegate.ShowDescription = false
+	delegate.SetSpacing(0)
 
-type singleSelectModel struct {
-	title    string
-	options  []string
-	cursor   int
-	canceled bool
-}
-
-func (m *singleSelectModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m *singleSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q", "esc":
-			m.canceled = true
-			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.options)-1 {
-				m.cursor++
-			}
-		case "enter":
-			return m, tea.Quit
-		}
+	items := []list.Item{
+		modeItem{label: "Select by service (recommended)"},
+		modeItem{label: "Select by scope"},
 	}
-	return m, nil
-}
 
-func (m *singleSelectModel) View() string {
-	var b strings.Builder
-	b.WriteString(m.title)
-	b.WriteString("\n\n")
-	for i, option := range m.options {
-		cursor := " "
-		if i == m.cursor {
-			cursor = ">"
-		}
-		b.WriteString(fmt.Sprintf("%s %s\n", cursor, option))
+	model := list.New(items, delegate, 0, 0)
+	model.Title = "Choose OAuth selection mode"
+	model.Styles = brandListStyles()
+	model.SetShowHelp(false)
+	model.SetFilteringEnabled(false)
+	model.SetShowFilter(false)
+	model.SetShowStatusBar(false)
+	model.DisableQuitKeybindings()
+	model.Select(modeIndexFor(defaultMode))
+
+	keys := modeKeyMap{listKeys: list.DefaultKeyMap()}
+	m := &singleSelectModel{
+		list: model,
+		help: brandHelpModel(),
+		keys: keys,
 	}
-	b.WriteString("\nenter: confirm  q: cancel")
-	return b.String()
-}
 
-type multiSelectModel struct {
-	title      string
-	items      []selectItem
-	cursor     int
-	canceled   bool
-	allowEmpty bool
-	errMessage string
-}
-
-func (m *multiSelectModel) Init() tea.Cmd {
-	return nil
-}
-
-func (m *multiSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
-	switch msg := msg.(type) {
-	case tea.KeyMsg:
-		switch msg.String() {
-		case "ctrl+c", "q", "esc":
-			m.canceled = true
-			return m, tea.Quit
-		case "up", "k":
-			if m.cursor > 0 {
-				m.cursor--
-			}
-		case "down", "j":
-			if m.cursor < len(m.items)-1 {
-				m.cursor++
-			}
-		case " ":
-			item := &m.items[m.cursor]
-			if !item.Locked {
-				item.Selected = !item.Selected
-			}
-		case "enter":
-			if !m.allowEmpty && len(m.selectedValues()) == 0 {
-				m.errMessage = "Select at least one item."
-				return m, nil
-			}
-			return m, tea.Quit
-		}
-	}
-	return m, nil
-}
-
-func (m *multiSelectModel) View() string {
-	var b strings.Builder
-	b.WriteString(m.title)
-	b.WriteString("\n\n")
-	if m.errMessage != "" {
-		b.WriteString(fmt.Sprintf("Error: %s\n\n", m.errMessage))
-	}
-	for i, item := range m.items {
-		cursor := " "
-		if i == m.cursor {
-			cursor = ">"
-		}
-		check := "[ ]"
-		if item.Selected {
-			check = "[x]"
-		}
-		b.WriteString(fmt.Sprintf("%s %s %s\n", cursor, check, item.Label))
-	}
-	b.WriteString("\nspace: toggle  enter: confirm  q: cancel")
-	return b.String()
-}
-
-func (m *multiSelectModel) selectedValues() []string {
-	selected := make([]string, 0, len(m.items))
-	for _, item := range m.items {
-		if item.Selected {
-			selected = append(selected, item.Value)
-		}
-	}
-	return selected
-}
-
-func runSingleSelect(title string, options []string, cursor int) (int, bool, error) {
-	model := &singleSelectModel{title: title, options: options, cursor: cursor}
-	program := tea.NewProgram(model, tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+	program := tea.NewProgram(m, tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 	result, err := program.Run()
 	if err != nil {
 		return 0, false, err
@@ -360,18 +232,292 @@ func runSingleSelect(title string, options []string, cursor int) (int, bool, err
 	if !ok {
 		return 0, false, errors.New("unexpected selection result")
 	}
-	return final.cursor, final.canceled, nil
+	return final.list.Index(), final.canceled, nil
 }
 
-func runMultiSelect(model *multiSelectModel) (*multiSelectModel, error) {
-	program := tea.NewProgram(model, tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
+func runMultiSelect(title string, items []optionItem, allowEmpty bool) ([]string, bool, error) {
+	delegate := brandDelegate()
+	delegate.ShowDescription = false
+
+	listItems := make([]list.Item, 0, len(items))
+	for _, item := range items {
+		listItems = append(listItems, item)
+	}
+
+	model := list.New(listItems, delegate, 0, 0)
+	model.Title = title
+	model.Styles = brandListStyles()
+	model.SetShowHelp(false)
+	model.SetFilteringEnabled(false)
+	model.SetShowFilter(false)
+	model.DisableQuitKeybindings()
+
+	keys := multiKeyMap{listKeys: list.DefaultKeyMap()}
+	m := &multiSelectModel{
+		list:       model,
+		help:       brandHelpModel(),
+		keys:       keys,
+		allowEmpty: allowEmpty,
+	}
+
+	program := tea.NewProgram(m, tea.WithInput(os.Stdin), tea.WithOutput(os.Stdout))
 	result, err := program.Run()
 	if err != nil {
-		return nil, err
+		return nil, false, err
 	}
 	final, ok := result.(*multiSelectModel)
 	if !ok {
-		return nil, errors.New("unexpected selection result")
+		return nil, false, errors.New("unexpected selection result")
 	}
-	return final, nil
+	return final.selectedValues(), final.canceled, nil
+}
+
+type modeItem struct {
+	label string
+}
+
+func (i modeItem) Title() string       { return i.label }
+func (i modeItem) Description() string { return "" }
+func (i modeItem) FilterValue() string { return i.label }
+
+type optionItem struct {
+	Label    string
+	Value    string
+	Selected bool
+	Locked   bool
+	Tag      string
+}
+
+func (i optionItem) Title() string {
+	box := "[ ]"
+	if i.Selected {
+		box = "[x]"
+	}
+	label := i.Label
+	if i.Locked && i.Tag != "" {
+		label = fmt.Sprintf("%s (%s)", label, i.Tag)
+	}
+	return fmt.Sprintf("%s %s", box, label)
+}
+
+func (i optionItem) Description() string { return "" }
+func (i optionItem) FilterValue() string { return i.Label + " " + i.Value }
+
+type modeKeyMap struct {
+	listKeys list.KeyMap
+	Confirm  key.Binding
+	Quit     key.Binding
+}
+
+func (k modeKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.listKeys.CursorUp, k.listKeys.CursorDown, k.Confirm, k.Quit}
+}
+
+func (k modeKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.listKeys.CursorUp, k.listKeys.CursorDown, k.Confirm, k.Quit}}
+}
+
+type multiKeyMap struct {
+	listKeys list.KeyMap
+	Toggle   key.Binding
+	Confirm  key.Binding
+	Quit     key.Binding
+}
+
+func (k multiKeyMap) ShortHelp() []key.Binding {
+	return []key.Binding{k.listKeys.CursorUp, k.listKeys.CursorDown, k.Toggle, k.Confirm, k.Quit}
+}
+
+func (k multiKeyMap) FullHelp() [][]key.Binding {
+	return [][]key.Binding{{k.listKeys.CursorUp, k.listKeys.CursorDown, k.Toggle, k.Confirm, k.Quit}}
+}
+
+type singleSelectModel struct {
+	list     list.Model
+	help     help.Model
+	keys     modeKeyMap
+	canceled bool
+}
+
+func (m *singleSelectModel) Init() tea.Cmd {
+	m.keys.Confirm = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm"))
+	m.keys.Quit = key.NewBinding(key.WithKeys("q", "esc", "ctrl+c"), key.WithHelp("q", "cancel"))
+	return nil
+}
+
+func (m *singleSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		m.list.SetSize(msg.Width, listHeight(msg.Height, 1, 0))
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "esc", "ctrl+c":
+			m.canceled = true
+			return m, tea.Quit
+		case "enter":
+			return m, tea.Quit
+		}
+	}
+
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+func (m *singleSelectModel) View() string {
+	helpView := m.help.View(m.keys)
+	if helpView == "" {
+		return m.list.View()
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, m.list.View(), helpView)
+}
+
+type multiSelectModel struct {
+	list       list.Model
+	help       help.Model
+	keys       multiKeyMap
+	allowEmpty bool
+	canceled   bool
+	errMessage string
+}
+
+func (m *multiSelectModel) Init() tea.Cmd {
+	m.keys.Toggle = key.NewBinding(key.WithKeys(" "), key.WithHelp("space", "toggle"))
+	m.keys.Confirm = key.NewBinding(key.WithKeys("enter"), key.WithHelp("enter", "confirm"))
+	m.keys.Quit = key.NewBinding(key.WithKeys("q", "esc", "ctrl+c"), key.WithHelp("q", "cancel"))
+	return nil
+}
+
+func (m *multiSelectModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	switch msg := msg.(type) {
+	case tea.WindowSizeMsg:
+		extra := 1
+		if m.errMessage != "" {
+			extra = 2
+		}
+		m.list.SetSize(msg.Width, listHeight(msg.Height, extra, 0))
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "q", "esc", "ctrl+c":
+			m.canceled = true
+			return m, tea.Quit
+		case " ":
+			m.toggleSelected()
+			return m, nil
+		case "enter":
+			if !m.allowEmpty && len(m.selectedValues()) == 0 {
+				m.errMessage = "Select at least one item."
+				return m, nil
+			}
+			return m, tea.Quit
+		}
+	}
+
+	var cmd tea.Cmd
+	m.list, cmd = m.list.Update(msg)
+	return m, cmd
+}
+
+func (m *multiSelectModel) View() string {
+	helpView := m.help.View(m.keys)
+	blocks := make([]string, 0, 3)
+	if m.errMessage != "" {
+		blocks = append(blocks, errorStyle().Render(m.errMessage))
+	}
+	blocks = append(blocks, m.list.View())
+	if helpView != "" {
+		blocks = append(blocks, helpView)
+	}
+	return lipgloss.JoinVertical(lipgloss.Left, blocks...)
+}
+
+func (m *multiSelectModel) toggleSelected() {
+	index := m.list.Index()
+	items := m.list.Items()
+	if index < 0 || index >= len(items) {
+		return
+	}
+	current, ok := items[index].(optionItem)
+	if !ok {
+		return
+	}
+	if current.Locked {
+		return
+	}
+	current.Selected = !current.Selected
+	items[index] = current
+	_ = m.list.SetItems(items)
+}
+
+func (m *multiSelectModel) selectedValues() []string {
+	items := m.list.Items()
+	selected := make([]string, 0, len(items))
+	for _, item := range items {
+		opt, ok := item.(optionItem)
+		if !ok {
+			continue
+		}
+		if opt.Selected {
+			selected = append(selected, opt.Value)
+		}
+	}
+	return selected
+}
+
+func listHeight(total, footerLines, headerLines int) int {
+	height := total - footerLines - headerLines
+	if height < 4 {
+		return 4
+	}
+	return height
+}
+
+func brandDelegate() list.DefaultDelegate {
+	brand := output.BrandColor()
+	delegate := list.NewDefaultDelegate()
+	delegate.Styles.SelectedTitle = delegate.Styles.SelectedTitle.Copy().
+		Border(lipgloss.NormalBorder(), false, false, false, true).
+		BorderForeground(brand).
+		Foreground(brand)
+	delegate.Styles.SelectedDesc = delegate.Styles.SelectedDesc.Copy().Foreground(brand)
+	return delegate
+}
+
+func brandListStyles() list.Styles {
+	brand := output.BrandColor()
+	styles := list.DefaultStyles()
+	styles.Title = styles.Title.Copy().
+		Background(brand).
+		Foreground(lipgloss.Color("255")).
+		Bold(true)
+	styles.TitleBar = styles.TitleBar.Copy().Padding(0, 0, 1, 1)
+	styles.PaginationStyle = styles.PaginationStyle.Copy().Foreground(brand)
+	styles.ActivePaginationDot = styles.ActivePaginationDot.Copy().Foreground(brand)
+	styles.ArabicPagination = styles.ArabicPagination.Copy().Foreground(brand)
+	styles.HelpStyle = styles.HelpStyle.Copy().Foreground(brand)
+	styles.StatusBar = styles.StatusBar.Copy().Foreground(brand)
+	styles.StatusBarActiveFilter = styles.StatusBarActiveFilter.Copy().Foreground(brand)
+	styles.StatusBarFilterCount = styles.StatusBarFilterCount.Copy().Foreground(brand)
+	return styles
+}
+
+func brandHelpModel() help.Model {
+	brand := output.BrandColor()
+	m := help.New()
+	m.Styles.ShortKey = m.Styles.ShortKey.Copy().Foreground(brand).Bold(true)
+	m.Styles.FullKey = m.Styles.FullKey.Copy().Foreground(brand).Bold(true)
+	m.Styles.ShortSeparator = m.Styles.ShortSeparator.Copy().Foreground(brand)
+	m.Styles.FullSeparator = m.Styles.FullSeparator.Copy().Foreground(brand)
+	return m
+}
+
+func errorStyle() lipgloss.Style {
+	return lipgloss.NewStyle().Foreground(lipgloss.Color("#E02E2E")).Bold(true)
+}
+
+func modeIndexFor(mode userOAuthSelectionMode) int {
+	if mode == userOAuthSelectScopes {
+		return 1
+	}
+	return 0
 }

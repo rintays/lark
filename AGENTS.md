@@ -137,3 +137,4 @@
 - 2026-02-02: Fixed panic when root command context is nil by defaulting to background for signal-aware execution.
 - 2026-02-02: Added `lark auth tenant`, removed deprecated user login `--scope`, surfaced available user OAuth scopes in help, and updated docs/tests.
 - 2026-02-02: Added Bubble Tea interactive picker for `lark auth user login` when no scopes/services flags are provided, with previous selections preselected and README updated.
+- 2026-02-02: Switched auth user login picker to Bubbles list + help with Lark blue theming, plus shared brand color in output theme.

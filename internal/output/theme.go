@@ -19,9 +19,10 @@ func NewTheme(styled bool) Theme {
 	if !styled {
 		return theme
 	}
+	brand := BrandColor()
 	theme.headerStyle = lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.AdaptiveColor{Light: "62", Dark: "81"})
+		Foreground(brand)
 	theme.separatorStyle = lipgloss.NewStyle().
 		Foreground(lipgloss.AdaptiveColor{Light: "245", Dark: "240"})
 	theme.warnLabel = lipgloss.NewStyle().
@@ -32,16 +33,16 @@ func NewTheme(styled bool) Theme {
 		Foreground(lipgloss.AdaptiveColor{Light: "160", Dark: "196"})
 	theme.hintLabel = lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.AdaptiveColor{Light: "24", Dark: "39"})
+		Foreground(brand)
 	theme.infoLabel = lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.AdaptiveColor{Light: "67", Dark: "75"})
+		Foreground(brand)
 	theme.successLabel = lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.AdaptiveColor{Light: "28", Dark: "42"})
+		Foreground(brand)
 	theme.sectionTitle = lipgloss.NewStyle().
 		Bold(true).
-		Foreground(lipgloss.AdaptiveColor{Light: "238", Dark: "248"})
+		Foreground(brand)
 	return theme
 }
 
