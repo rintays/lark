@@ -83,6 +83,80 @@ func TestDocsCreateCommand(t *testing.T) {
 	}
 }
 
+func TestDocsCreateCommandURLFallback(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		switch r.URL.Path {
+		case "/open-apis/docx/v1/documents":
+			if r.Method != http.MethodPost {
+				t.Fatalf("unexpected method: %s", r.Method)
+			}
+			if r.Header.Get("Authorization") != "Bearer token" {
+				t.Fatalf("missing auth header")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"document": map[string]any{
+						"document_id": "doc1",
+						"title":       "Specs",
+						"url":         "",
+					},
+				},
+			})
+		case "/open-apis/drive/v1/files/doc1":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected method: %s", r.Method)
+			}
+			if r.Header.Get("Authorization") != "Bearer token" {
+				t.Fatalf("missing auth header")
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"file": map[string]any{
+						"token": "doc1",
+						"url":   "https://example.com/doc",
+					},
+				},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newDocsCmd(state)
+	cmd.SetArgs([]string{"create", "Specs"})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("docs create error: %v", err)
+	}
+
+	if !strings.Contains(buf.String(), "doc1\tSpecs\thttps://example.com/doc") {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
 func TestDocsCreateCommandMissingTitleDoesNotCallHTTP(t *testing.T) {
 	called := false
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -426,7 +500,7 @@ func TestDocsInfoCommandRequiresSDK(t *testing.T) {
 }
 
 func TestDocsGetCommand(t *testing.T) {
-	exported := []byte("Hello doc\nLine two\n")
+	exported := []byte("Hello doc\\nLine two\\n")
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Header.Get("Authorization") != "Bearer token" {
 			t.Fatalf("missing auth header")
@@ -434,17 +508,37 @@ func TestDocsGetCommand(t *testing.T) {
 		if r.URL.RawQuery != "" {
 			t.Fatalf("unexpected query: %q", r.URL.RawQuery)
 		}
-		if r.Method != http.MethodGet || r.URL.Path != "/open-apis/docx/v1/documents/doc1/raw_content" {
-			t.Fatalf("unexpected path: %s %s", r.Method, r.URL.Path)
+		switch r.URL.Path {
+		case "/open-apis/docx/v1/documents/doc1/raw_content":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected method: %s", r.Method)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"content": string(exported),
+				},
+			})
+		case "/open-apis/docx/v1/documents/doc1":
+			if r.Method != http.MethodGet {
+				t.Fatalf("unexpected method: %s", r.Method)
+			}
+			w.Header().Set("Content-Type", "application/json")
+			_ = json.NewEncoder(w).Encode(map[string]any{
+				"code": 0,
+				"msg":  "ok",
+				"data": map[string]any{
+					"document": map[string]any{
+						"document_id": "doc1",
+						"title":       "Specs",
+					},
+				},
+			})
+		default:
+			t.Fatalf("unexpected path: %s", r.URL.Path)
 		}
-		w.Header().Set("Content-Type", "application/json")
-		_ = json.NewEncoder(w).Encode(map[string]any{
-			"code": 0,
-			"msg":  "ok",
-			"data": map[string]any{
-				"content": string(exported),
-			},
-		})
 	})
 	httpClient, baseURL := testutil.NewTestClient(handler)
 
@@ -471,7 +565,7 @@ func TestDocsGetCommand(t *testing.T) {
 		t.Fatalf("docs get error: %v", err)
 	}
 
-	if got := buf.String(); got != string(exported) {
+	if got := buf.String(); got != "Hello doc\nLine two\n" {
 		t.Fatalf("unexpected output: %q", got)
 	}
 }
