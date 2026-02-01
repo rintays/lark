@@ -29,6 +29,29 @@ func usageErrorWithUsage(cmd *cobra.Command, message string, hint string, usage 
 	}
 }
 
+func argsUsageError(cmd *cobra.Command, err error) error {
+	if err == nil {
+		return nil
+	}
+	usage := ""
+	if cmd != nil {
+		usage = cmd.UsageString()
+	}
+	hint := ""
+	if cmd != nil {
+		example := strings.TrimSpace(cmd.Example)
+		if example != "" {
+			hint = fmt.Sprintf("Example:\n%s", example)
+		} else {
+			command := strings.TrimSpace(cmd.CommandPath())
+			if command != "" {
+				hint = fmt.Sprintf("Run: %s --help for details.", command)
+			}
+		}
+	}
+	return usageErrorWithUsage(cmd, err.Error(), hint, usage)
+}
+
 func flagErrorHint(cmd *cobra.Command, err error) string {
 	if cmd == nil || err == nil {
 		return ""

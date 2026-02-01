@@ -51,7 +51,7 @@ func newSheetsReadCmd(state *appState) *cobra.Command {
 		Short: "Read a range from Sheets",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			spreadsheetID = strings.TrimSpace(args[0])
 			sheetRange = strings.TrimSpace(args[1])
@@ -100,7 +100,7 @@ func newSheetsInfoCmd(state *appState) *cobra.Command {
 		Short: "Show spreadsheet info",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			spreadsheetID = strings.TrimSpace(args[0])
 			if spreadsheetID == "" {
@@ -137,7 +137,7 @@ func newSheetsDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete a spreadsheet",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			spreadsheetID = strings.TrimSpace(args[0])
 			if spreadsheetID == "" {
@@ -185,7 +185,7 @@ func newSheetsUpdateCmd(state *appState) *cobra.Command {
 		Short: "Update a range in Sheets",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			spreadsheetID = strings.TrimSpace(args[0])
 			sheetRange = strings.TrimSpace(args[1])
@@ -242,7 +242,7 @@ func newSheetsAppendCmd(state *appState) *cobra.Command {
 		Short: "Append rows to Sheets",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			spreadsheetID = strings.TrimSpace(args[0])
 			sheetRange = strings.TrimSpace(args[1])
@@ -297,7 +297,7 @@ func newSheetsClearCmd(state *appState) *cobra.Command {
 		Short: "Clear a range in Sheets",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			spreadsheetID = strings.TrimSpace(args[0])
 			sheetRange = strings.TrimSpace(args[1])

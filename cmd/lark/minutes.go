@@ -36,7 +36,7 @@ func newMinutesInfoCmd(state *appState) *cobra.Command {
 		Short: "Show Minutes details",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("minute-token is required")
@@ -161,7 +161,7 @@ func newMinutesDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete Minutes",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("minute-token is required")
@@ -224,7 +224,7 @@ func newMinutesUpdateCmd(state *appState) *cobra.Command {
 		Short: "Update Minutes sharing permissions",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("minute-token is required")

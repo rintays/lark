@@ -28,7 +28,7 @@ func newWikiTaskInfoCmd(state *appState) *cobra.Command {
 		Short: "Show Wiki task results (v2)",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("task-id is required")

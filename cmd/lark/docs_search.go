@@ -19,7 +19,7 @@ func newDocsSearchCmd(state *appState) *cobra.Command {
 		Short: "Search Docs (docx) by text",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			query = strings.TrimSpace(args[0])
 			if query == "" {

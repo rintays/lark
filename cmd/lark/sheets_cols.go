@@ -30,7 +30,7 @@ func newSheetsColsInsertCmd(state *appState) *cobra.Command {
 		Short: "Insert columns into a sheet",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(4)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			spreadsheetID = strings.TrimSpace(args[0])
 			sheetID = strings.TrimSpace(args[1])
@@ -100,7 +100,7 @@ func newSheetsColsDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete columns from a sheet",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(4)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			spreadsheetID = strings.TrimSpace(args[0])
 			sheetID = strings.TrimSpace(args[1])

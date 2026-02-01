@@ -346,7 +346,7 @@ func newCalendarSearchCmd(state *appState) *cobra.Command {
 		Short: "Search events in a calendar",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			query = strings.TrimSpace(args[0])
 			if query == "" {
@@ -465,7 +465,7 @@ func newCalendarGetCmd(state *appState) *cobra.Command {
 		Short: "Get calendar event details",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			eventID = strings.TrimSpace(args[0])
 			if eventID == "" {
@@ -592,7 +592,7 @@ func newCalendarUpdateCmd(state *appState) *cobra.Command {
 		Short: "Update a calendar event",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			eventID = strings.TrimSpace(args[0])
 			if eventID == "" {
@@ -770,7 +770,7 @@ func newCalendarDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete a calendar event",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			eventID = strings.TrimSpace(args[0])
 			if eventID == "" {

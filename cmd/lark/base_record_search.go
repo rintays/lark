@@ -25,7 +25,7 @@ func newBaseRecordSearchCmd(state *appState) *cobra.Command {
 		Short: "Search Bitable records",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			if tableID == "" {

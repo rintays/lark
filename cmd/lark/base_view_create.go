@@ -19,7 +19,7 @@ func newBaseViewCreateCmd(state *appState) *cobra.Command {
 		Short: "Create a Bitable view",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.RangeArgs(1, 2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			if tableID == "" {

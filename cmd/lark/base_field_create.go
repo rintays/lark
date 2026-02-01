@@ -24,7 +24,7 @@ func newBaseFieldCreateCmd(state *appState) *cobra.Command {
 		Short: "Create a Bitable field",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.RangeArgs(1, 2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			if tableID == "" {

@@ -22,7 +22,7 @@ func newWikiSpaceCreateCmd(state *appState) *cobra.Command {
 		Short: "Create a Wiki space (v2)",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if len(args) == 0 {
 				if strings.TrimSpace(name) == "" {

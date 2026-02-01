@@ -31,7 +31,7 @@ func newMsgListCmd(state *appState) *cobra.Command {
 		Example: `  lark messages list <chat_id>`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if len(args) == 0 {
 				return usageError(cmd, "container-id is required", `Example:

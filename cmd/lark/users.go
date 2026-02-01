@@ -43,7 +43,7 @@ func newUsersSearchCmd(state *appState) *cobra.Command {
   lark users search --email "ada@example.com"`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			email = strings.TrimSpace(email)
 			if len(args) == 0 && email == "" {

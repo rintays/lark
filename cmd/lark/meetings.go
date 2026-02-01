@@ -42,7 +42,7 @@ func newMeetingInfoCmd(state *appState) *cobra.Command {
 		Short: "Show meeting details",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("meeting-id is required")
@@ -321,7 +321,7 @@ func newMeetingUpdateCmd(state *appState) *cobra.Command {
 		Short: "Update a meeting reservation",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			reserveID = strings.TrimSpace(args[0])
 			if reserveID == "" {
@@ -387,7 +387,7 @@ func newMeetingDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete a meeting reservation",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			reserveID = strings.TrimSpace(args[0])
 			if reserveID == "" {

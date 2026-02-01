@@ -142,7 +142,7 @@ func newBaseFieldListCmd(state *appState) *cobra.Command {
 		Short: "List Bitable fields",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			if tableID == "" {
@@ -187,7 +187,7 @@ func newBaseViewListCmd(state *appState) *cobra.Command {
 		Short: "List Bitable views",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			if tableID == "" {
@@ -233,7 +233,7 @@ func newBaseRecordInfoCmd(state *appState) *cobra.Command {
 		Short: "Show a Bitable record",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			recordID = strings.TrimSpace(args[1])

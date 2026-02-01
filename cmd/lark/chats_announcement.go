@@ -28,7 +28,7 @@ func newChatsAnnouncementGetCmd(state *appState) *cobra.Command {
 		Short: "Get chat announcement",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			chatID = strings.TrimSpace(args[0])
 			if chatID == "" {
@@ -90,7 +90,7 @@ func newChatsAnnouncementUpdateCmd(state *appState) *cobra.Command {
 		Short: "Update chat announcement",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			chatID = strings.TrimSpace(args[0])
 			if chatID == "" {
