@@ -291,8 +291,8 @@ P1:
 
 P2:
 - [ ] `base app create/info/update/copy` (SDK supports; enables CLI-only lifecycle)
-- [ ] `base list` / `base app list` (discover app_token via Drive/Wiki)
-  - [ ] implement via `drive search --type bitable --query ...` and parse `file.url` to extract app_token
+- [x] `base list` / `base app list` (discover app_token via Drive/Wiki)
+  - [x] implement via Drive search (`file_types=[bitable]`) and parse `file.url` to extract app_token
 - [ ] attachments workflows across Drive
 
 Acceptance criteria:
@@ -551,3 +551,4 @@ Deliverables:
 - 2026-02-01: Base field update: SDK-first for rename-only; core fallback for advanced payloads (`--property-json`/`--description-json`); cmd unit tests added.
 - 2026-02-01: Base view create: added core fallback (POST /views) while keeping SDK-first; CLI defaults `--view-type` to `grid`.
 - 2026-02-01: Base view delete: SDK-first + core fallback; prints `deleted/view_id`; unit tests added.
+- 2026-02-01: Base list/app list: added `bases list` (and `bases app list`) via Drive search (bitable) + app_token extraction from file URL + unit test.
