@@ -38,7 +38,14 @@ func newDrivePermissionAddCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "add <file-token> <member-type> <member-id>",
 		Short:   "Add a Drive collaborator permission",
-		Example: `  lark drive permissions add <file-token> email fred@srv.work --type docx --perm view --member-kind user`,
+		Long: `Add a Drive collaborator permission.
+
+Arguments:
+  file-token: Drive file token (docx document_id, spreadsheet_token, or file_token).
+  member-type: collaborator identifier type (openid, userid, email, openchat, opendepartmentid).
+  member-id: identifier value for the chosen member-type.
+`,
+		Example: `  lark drive permissions add <file-token> openid ou_xxx --type docx --perm view --member-kind user`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(3)(cmd, args); err != nil {
 				return argsUsageError(cmd, err)
@@ -63,7 +70,7 @@ func newDrivePermissionAddCmd(state *appState) *cobra.Command {
 			}
 			if strings.TrimSpace(fileToken) == "" {
 				return usageError(cmd, "file-token is required", `Example:
-  lark drive permissions add <file-token> email fred@srv.work --type docx --perm view --member-kind user`)
+  lark drive permissions add <file-token> openid ou_xxx --type docx --perm view --member-kind user`)
 			}
 			ctx := cmd.Context()
 			token, tokenType, err := resolveAccessToken(ctx, state, tokenTypesTenantOrUser, nil)
