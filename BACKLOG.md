@@ -205,10 +205,10 @@ Deliverables:
 - [ ] Remove legacy HTTP client code paths for endpoints covered by SDK.
   - [x] Drop `coreConfig` availability gating for SDK-only `ListMailMessages` in `internal/larksdk`.
 - [ ] Delete transitional “fallback” tests after migration.
-- [ ] Maintain a **Coverage Matrix** section in this backlog (or a sibling doc later):
+- [x] Maintain a **Coverage Matrix** doc: `docs/coverage-matrix.md`
   - desired API → SDK support? (yes/no)
   - token type: tenant/user
-  - version: v1/v2
+  - version: v1/v2/v3 (or `docs-api`)
   - if not supported: wrapper name in `internal/larksdk` using `core.ApiReq`
 
 Acceptance criteria:
@@ -554,3 +554,4 @@ Deliverables:
 - 2026-02-01: Base view delete: SDK-first + core fallback; prints `deleted/view_id`; unit tests added.
 - 2026-02-01: Base list/app list: added `bases list` (and `bases app list`) via Drive search (bitable) + app_token extraction from file URL + unit test.
 - 2026-02-01: Config multi-profile: treat `--profile default` as alias of legacy config path; keychain token bucket uses (profile, base_url, app_id) with migration; unit tests added.
+- 2026-02-01: Documented SDK-first coverage matrix (`docs/coverage-matrix.md`) and marked backlog item complete.
