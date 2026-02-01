@@ -280,9 +280,10 @@ P1:
   - [x] `base record batch-update`
   - [x] `base record batch-delete`
 - [ ] schema/view management
-  - [ ] `base field create/update/delete`
+  - [x] `base field create/update/delete`
     - [x] `base field create`
       - Supports `--field-type <name|id>` (default: `text`); output includes `field_id/field_name/type`.
+    - [x] `base field update`
     - [x] `base field delete`
   - [ ] `base view create/update/delete`
     - [x] `base view create`
@@ -547,5 +548,6 @@ Deliverables:
 - 2026-02-01: Base record batch ops: added `base record batch-delete` command + SDK wrapper + unit tests.
 - 2026-02-01: Base record batch ops: added `base record batch-update` command + SDK-first + core fallback wrapper + unit tests.
 - 2026-02-01: Base field create: SDK-first + core fallback wrapper; CLI supports `--field-type <name|id>` (defaults to `text`) and prints `field_id/field_name/type`; cmd unit tests assert path/body/query + output contains `field_id`.
+- 2026-02-01: Base field update: SDK-first for rename-only; core fallback for advanced payloads (`--property-json`/`--description-json`); cmd unit tests added.
 - 2026-02-01: Base view create: added core fallback (POST /views) while keeping SDK-first; CLI defaults `--view-type` to `grid`.
 - 2026-02-01: Base view delete: SDK-first + core fallback; prints `deleted/view_id`; unit tests added.
