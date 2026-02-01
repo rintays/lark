@@ -404,7 +404,6 @@ Additional consistency work:
     - `meetings` info/update/delete + reserves update/delete (meeting-id/reserve-id)
     - `minutes` info/update/delete (minute-token)
     - `wiki` space create/node list/task info (name/space-id/task-id)
-    - `mail mailbox set` (mailbox-id)
 
 ---
 
@@ -583,3 +582,4 @@ Deliverables:
 - 2026-02-01: Config multi-profile: treat `--profile default` as alias of legacy config path; keychain token bucket uses (profile, base_url, app_id) with migration; unit tests added.
 - 2026-02-01: Documented SDK-first coverage matrix (`docs/coverage-matrix.md`) and marked backlog item complete.
 - 2026-02-01: Wiki backlog checkbox alignment (marked Wiki P0/P1 and member-management items complete).
+- 2026-02-01: Bases list/app list: improved app_token extraction for common Feishu/Lark URL shapes + added unit tests for URL parsing and `bases app list` + README examples.
