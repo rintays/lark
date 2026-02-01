@@ -176,8 +176,10 @@ func newMsgSearchCmd(state *appState) *cobra.Command {
 				prefixWidth := 0
 				for _, message := range messages {
 					display := buildMessageDisplay(message, styles, senderNames)
-					if w := lipgloss.Width(display.prefixPlain); w > prefixWidth {
-						prefixWidth = w
+					for _, left := range display.leftPlain {
+						if w := lipgloss.Width(left); w > prefixWidth {
+							prefixWidth = w
+						}
 					}
 					displays = append(displays, display)
 				}
