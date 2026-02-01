@@ -14,6 +14,72 @@ import (
 	"lark/internal/testutil"
 )
 
+func TestBaseViewDeleteCommandRequiresTableID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("unexpected HTTP call")
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "tenant-token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &bytes.Buffer{}},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newBaseCmd(state)
+	cmd.SetArgs([]string{"view", "delete", "--app-token", "app_1", "--view-id", "viw_1"})
+	err = cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.Error() != "required flag(s) \"table-id\" not set" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestBaseViewDeleteCommandRequiresViewID(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		t.Fatalf("unexpected HTTP call")
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "tenant-token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &bytes.Buffer{}},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newBaseCmd(state)
+	cmd.SetArgs([]string{"view", "delete", "--app-token", "app_1", "tbl_1"})
+	err = cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if err.Error() != "required flag(s) \"view-id\" not set" {
+		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
 func TestBaseViewDeleteCommand(t *testing.T) {
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodDelete {
