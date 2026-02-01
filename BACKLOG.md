@@ -383,6 +383,12 @@ Additional consistency work:
   - [x] `wiki node info` now uses required flag validation for `--node-token` and `--obj-type` (positional args set the flags) + unit tests assert stable required-flag errors
   - [x] `bases record delete` now uses required flag validation for `--table-id` and `--record-id` (positional args set the flags) + unit tests assert stable required-flag errors
   - [x] `wiki member add/delete` now use required flag validation for `--member-type` and `--member-id` (positional args set the flags) + unit tests assert stable required-flag errors
+  - [ ] TODO: audit remaining commands that still rely on manual required-input checks and decide whether to convert them to Cobra required-flag validation.
+    - `messages send` (`--receive-id` is still checked manually in `RunE` even though it’s marked required)
+    - `drive search` (`query is required` check is still manual)
+    - `drive download` (`file-token is required` check is still manual)
+    - `wiki task info` (`task-id is required` check is still manual)
+    - `bases field list/view list/record info/field update` (`table-id`/`record-id`/`field-id` required checks are still manual)
   - Goal: missing required flags should fail *before* making API calls.
   - Commands should not rely on scattered `if x == ""` checks.
   - Keep runtime validations for things like file existence, output path not a directory, etc.
