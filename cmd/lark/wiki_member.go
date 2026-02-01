@@ -105,7 +105,7 @@ func newWikiMemberAddCmd(state *appState) *cobra.Command {
 		Short: "Add a Wiki space member (v2)",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			memberType = strings.TrimSpace(args[0])
 			memberID = strings.TrimSpace(args[1])
@@ -165,7 +165,7 @@ func newWikiMemberDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete a Wiki space member (v2)",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			memberType = strings.TrimSpace(args[0])
 			memberID = strings.TrimSpace(args[1])

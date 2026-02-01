@@ -16,7 +16,7 @@ func newWikiNodeInfoCmd(state *appState) *cobra.Command {
 		Short: "Show a Wiki node (v2)",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("node-token is required")

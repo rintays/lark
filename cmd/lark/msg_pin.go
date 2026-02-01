@@ -17,7 +17,7 @@ func newMsgPinCmd(state *appState) *cobra.Command {
 		Short: "Pin a message",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if len(args) == 0 {
 				return errors.New("message-id is required")
@@ -60,7 +60,7 @@ func newMsgUnpinCmd(state *appState) *cobra.Command {
 		Short: "Unpin a message",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if len(args) == 0 {
 				return errors.New("message-id is required")

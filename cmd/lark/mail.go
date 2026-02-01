@@ -91,7 +91,7 @@ func newMailMailboxSetCmd(state *appState) *cobra.Command {
 		Short: "Set the default mailbox",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			mailboxID = strings.TrimSpace(args[0])
 			if mailboxID == "" {
@@ -325,7 +325,7 @@ func newMailInfoCmd(state *appState) *cobra.Command {
 		Short: "Show mail message metadata",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("message-id is required")
@@ -365,7 +365,7 @@ func newMailGetCmd(state *appState) *cobra.Command {
 		Short: "Get a mail message (full content)",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("message-id is required")

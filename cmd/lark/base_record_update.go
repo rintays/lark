@@ -38,7 +38,7 @@ Value formats (write):
 - location: "116.397755,39.903179"`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			recordID = strings.TrimSpace(args[1])

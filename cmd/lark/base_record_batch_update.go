@@ -36,7 +36,7 @@ You can also pass a file path with @:
   --records @records.json`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			if tableID == "" {

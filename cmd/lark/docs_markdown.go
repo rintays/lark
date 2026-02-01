@@ -73,7 +73,7 @@ func newDocsOverwriteCmd(state *appState) *cobra.Command {
 		Short: "Overwrite a Docx document with Markdown/HTML",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")

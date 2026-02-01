@@ -42,7 +42,7 @@ func newMsgSendCmd(state *appState) *cobra.Command {
 		Short: "Send a message to a chat or user",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			receiveID = strings.TrimSpace(args[0])
 			if receiveID == "" {

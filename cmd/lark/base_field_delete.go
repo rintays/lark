@@ -19,7 +19,7 @@ func newBaseFieldDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete a Bitable field",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			tableID = strings.TrimSpace(args[0])
 			fieldID = strings.TrimSpace(args[1])

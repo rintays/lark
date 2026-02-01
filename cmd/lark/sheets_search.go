@@ -19,7 +19,7 @@ func newSheetsSearchCmd(state *appState) *cobra.Command {
 		Short: "Search Sheets (spreadsheets) by text (user access token required)",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			query = strings.TrimSpace(args[0])
 			if query == "" {

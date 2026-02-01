@@ -21,7 +21,12 @@ func newAuthPlatformSetCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "set [feishu|lark]",
 		Short: "Persist platform base URL to config",
-		Args:  cobra.ExactArgs(1),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+				return argsUsageError(cmd, err)
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			platform := strings.ToLower(strings.TrimSpace(args[0]))
 			baseURL, err := platformBaseURL(platform)

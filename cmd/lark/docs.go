@@ -51,7 +51,7 @@ func newDocsCreateCmd(state *appState) *cobra.Command {
 		Short: "Create a Docs (docx) document",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if len(args) == 0 {
 				return errors.New("title is required")
@@ -96,7 +96,7 @@ func newDocsInfoCmd(state *appState) *cobra.Command {
 		Short: "Show Docs (docx) document info",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -136,7 +136,7 @@ func newDocsExportCmd(state *appState) *cobra.Command {
 		Short: "Export a Docs (docx) document",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -212,7 +212,7 @@ func newDocsGetCmd(state *appState) *cobra.Command {
 		Short: "Fetch Docs (docx) document content",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")

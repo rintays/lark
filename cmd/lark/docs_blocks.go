@@ -38,7 +38,7 @@ func newDocsBlocksGetCmd(state *appState) *cobra.Command {
 		Short: "Get a Docx block",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -90,7 +90,7 @@ func newDocsBlocksListCmd(state *appState) *cobra.Command {
 		Short: "List Docx blocks",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -170,7 +170,7 @@ func newDocsBlocksUpdateCmd(state *appState) *cobra.Command {
 		Short: "Update a Docx block",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -250,7 +250,7 @@ func newDocsBlocksBatchUpdateCmd(state *appState) *cobra.Command {
 		Short: "Batch update Docx blocks",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -335,7 +335,7 @@ func newDocsBlocksChildrenListCmd(state *appState) *cobra.Command {
 		Short: "List children of a Docx block",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -423,7 +423,7 @@ func newDocsBlocksChildrenCreateCmd(state *appState) *cobra.Command {
 		Short: "Create children blocks",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -497,7 +497,7 @@ func newDocsBlocksChildrenDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete children blocks by index range",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")
@@ -578,7 +578,7 @@ func newDocsBlocksDescendantCreateCmd(state *appState) *cobra.Command {
 		Short: "Create nested blocks",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if strings.TrimSpace(args[0]) == "" {
 				return errors.New("document-id is required")

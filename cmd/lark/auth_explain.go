@@ -15,7 +15,12 @@ func newAuthExplainCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "explain <command...>",
 		Short: "Explain auth requirements for a command",
-		Args:  cobra.MinimumNArgs(1),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
+				return argsUsageError(cmd, err)
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			command := strings.Join(args, " ")
 

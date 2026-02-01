@@ -42,7 +42,7 @@ func newDrivePermissionAddCmd(state *appState) *cobra.Command {
 		Example: `  lark drive permissions add <file-token> email fred@srv.work --type docx --perm view --member-kind user`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(3)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			fileToken = strings.TrimSpace(args[0])
 			memberType = strings.TrimSpace(args[1])
@@ -131,7 +131,7 @@ func newDrivePermissionListCmd(state *appState) *cobra.Command {
 		Example: `  lark drive permissions list <file-token> --type docx`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			fileToken = strings.TrimSpace(args[0])
 			if fileToken == "" {
@@ -204,7 +204,7 @@ func newDrivePermissionUpdateCmd(state *appState) *cobra.Command {
 		Example: `  lark drive permissions update <file-token> email fred@srv.work --type docx --perm edit`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(3)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			fileToken = strings.TrimSpace(args[0])
 			memberType = strings.TrimSpace(args[1])
@@ -298,7 +298,7 @@ func newDrivePermissionDeleteCmd(state *appState) *cobra.Command {
 		Example: `  lark drive permissions delete <file-token> email fred@srv.work --type docx`,
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(3)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			fileToken = strings.TrimSpace(args[0])
 			memberType = strings.TrimSpace(args[1])

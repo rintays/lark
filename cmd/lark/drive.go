@@ -113,7 +113,7 @@ func newDriveSearchCmd(state *appState) *cobra.Command {
 		Short: "Search Drive files by text",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			query = strings.TrimSpace(args[0])
 			if query == "" {
@@ -173,7 +173,7 @@ func newDriveInfoCmd(state *appState) *cobra.Command {
 		Short: "Show Drive file info",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			fileToken = strings.TrimSpace(args[0])
 			if fileToken == "" {
@@ -213,7 +213,7 @@ func newDriveUploadCmd(state *appState) *cobra.Command {
 		Short: "Upload a local file to Drive",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if len(args) == 0 {
 				if strings.TrimSpace(filePath) == "" {
@@ -304,7 +304,7 @@ func newDriveDownloadCmd(state *appState) *cobra.Command {
 		Short: "Download a Drive file",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			fileToken = strings.TrimSpace(args[0])
 			if fileToken == "" {
@@ -366,7 +366,7 @@ func newDriveExportCmd(state *appState) *cobra.Command {
 		Short: "Export a Drive file",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			fileToken = strings.TrimSpace(args[0])
 			if fileToken == "" {
@@ -442,7 +442,12 @@ func newDriveURLsCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "urls <file-token> [file-token...]",
 		Short: "Print web URLs for Drive file tokens",
-		Args:  cobra.MinimumNArgs(1),
+		Args: func(cmd *cobra.Command, args []string) error {
+			if err := cobra.MinimumNArgs(1)(cmd, args); err != nil {
+				return argsUsageError(cmd, err)
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			ctx := context.Background()
 			fetcher, err := newDriveMetadataFetcher(ctx, state)
@@ -485,7 +490,7 @@ func newDriveShareCmd(state *appState) *cobra.Command {
 		Short: "Update Drive file sharing permissions",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			fileToken = strings.TrimSpace(args[0])
 			if fileToken == "" {

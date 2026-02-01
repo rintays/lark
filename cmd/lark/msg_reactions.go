@@ -28,7 +28,7 @@ func newMsgReactionsAddCmd(state *appState) *cobra.Command {
 		Short: "Add a reaction to a message",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if len(args) == 0 {
 				return errors.New("message-id is required")
@@ -79,7 +79,7 @@ func newMsgReactionsDeleteCmd(state *appState) *cobra.Command {
 		Short: "Delete a reaction from a message",
 		Args: func(cmd *cobra.Command, args []string) error {
 			if err := cobra.MaximumNArgs(2)(cmd, args); err != nil {
-				return err
+				return argsUsageError(cmd, err)
 			}
 			if len(args) == 0 {
 				return errors.New("message-id is required")
