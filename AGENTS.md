@@ -148,4 +148,7 @@
 - 2026-02-02: Set message content/sender color to pure black/white for higher contrast.
 - 2026-02-02: Added best-effort sender name resolution for message list/search output when tenant token is available.
 - 2026-02-02: Switched messages list/search layout to a fixed prefix column with human-readable timestamps.
+- 2026-02-02: Trimmed message content blank lines to reduce extra spacing in message output.
+- 2026-02-02: Reworked messages list/search output to use a sender column with message text first and sender ID on the next line.
+- 2026-02-02: Adjusted messages list/search layout to align sender/time on line one and sender id + meta on line two.
 - 2026-02-02: Added Wiki node create/move/update-title/attach and space update-setting commands, fixed Wiki space create to use user tokens, added user-token support for Wiki v2 calls, and updated docs/coverage.
