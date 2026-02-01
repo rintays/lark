@@ -497,7 +497,7 @@ lark calendars search --query "Weekly Sync" --start "2026-01-02T03:04:05Z" --end
 Get event:
 
 ```bash
-lark calendars get --event-id <EVENT_ID> --need-attendee --need-meeting-settings --max-attendee-num 10
+lark calendars get --event-id <EVENT_ID> --need-attendee --need-meeting-settings --max-attendee-num 100
 ```
 
 Update event:
