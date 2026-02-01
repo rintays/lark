@@ -136,3 +136,4 @@
 - 2026-02-02: Fixed build regressions for base record timestamp output, added missing sheets create import, and updated user OAuth service list test for task features.
 - 2026-02-02: Fixed panic when root command context is nil by defaulting to background for signal-aware execution.
 - 2026-02-02: Added `lark auth tenant`, removed deprecated user login `--scope`, surfaced available user OAuth scopes in help, and updated docs/tests.
+- 2026-02-02: Added Bubble Tea interactive picker for `lark auth user login` when no scopes/services flags are provided, with previous selections preselected and README updated.
