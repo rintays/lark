@@ -79,6 +79,14 @@ func newDocsCreateCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			if doc.URL == "" {
+				file, err := state.SDK.GetDriveFileMetadata(context.Background(), token, larksdk.GetDriveFileRequest{
+					FileToken: doc.DocumentID,
+				})
+				if err == nil && file.URL != "" {
+					doc.URL = file.URL
+				}
+			}
 			payload := map[string]any{"document": doc}
 			text := tableTextRow(
 				[]string{"document_id", "title", "url"},
@@ -274,6 +282,13 @@ func newDocsGetCmd(state *appState) *cobra.Command {
 				if err != nil {
 					return err
 				}
+				content = normalizeDocxContentEscapes(content)
+				if content != "" {
+					doc, err := state.SDK.GetDocxDocument(context.Background(), token, documentID)
+					if err == nil && doc.Title != "" {
+						content = stripDocxTitlePrefix(content, doc.Title)
+					}
+				}
 				if state.JSON {
 					payload := map[string]any{
 						"document_id": documentID,
@@ -362,6 +377,23 @@ func formatDocxInfo(doc larksdk.DocxDocument) string {
 		rows[len(rows)-1][1] = infoValueFloatPtr(cover.OffsetRatioY)
 	}
 	return formatInfoTable(rows, "no document found")
+}
+
+func stripDocxTitlePrefix(content, title string) string {
+	title = strings.TrimSpace(title)
+	if title == "" || content == "" {
+		return content
+	}
+	if content == title {
+		return ""
+	}
+	if strings.HasPrefix(content, title+"\r\n") {
+		return strings.TrimPrefix(content, title+"\r\n")
+	}
+	if strings.HasPrefix(content, title+"\n") {
+		return strings.TrimPrefix(content, title+"\n")
+	}
+	return content
 }
 
 type exportTaskClient interface {

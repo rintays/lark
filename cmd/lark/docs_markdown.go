@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"strings"
 
 	larkdocx "github.com/larksuite/oapi-sdk-go/v3/service/docx/v1"
@@ -30,6 +31,7 @@ func newDocsConvertCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			raw = normalizeDocxContentEscapes(raw)
 			normalized, err := normalizeDocxContentType(contentType)
 			if err != nil {
 				return err
@@ -93,6 +95,7 @@ func newDocsOverwriteCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
+			raw = normalizeDocxContentEscapes(raw)
 			normalized, err := normalizeDocxContentType(contentType)
 			if err != nil {
 				return err
@@ -183,6 +186,24 @@ func normalizeDocxContentType(raw string) (string, error) {
 	default:
 		return "", fmt.Errorf("unsupported content type: %s", raw)
 	}
+}
+
+func normalizeDocxContentEscapes(raw string) string {
+	if raw == "" {
+		return raw
+	}
+	if strings.Contains(raw, "\n") || strings.Contains(raw, "\r") {
+		return raw
+	}
+	if !strings.Contains(raw, "\\") {
+		return raw
+	}
+	quoted := `"` + strings.ReplaceAll(raw, `"`, `\"`) + `"`
+	unquoted, err := strconv.Unquote(quoted)
+	if err != nil {
+		return raw
+	}
+	return unquoted
 }
 
 func scrubDocxTableMergeInfo(blocks []*larkdocx.Block) {
