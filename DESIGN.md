@@ -40,6 +40,8 @@ Naming alignment (CLI placeholder -> OpenAPI field):
 - message-id -> message_id (IM/Mail)
 - event-id -> event_id (Calendar)
 - meeting-id -> meeting_id (Meetings)
+- task-guid -> task_guid (Tasks)
+- tasklist-guid -> tasklist_guid (Task lists)
 - reserve-id -> reserve_id (Meetings reservations)
 - minute-token -> minute_token (Minutes)
 - app-token -> app_token (Bitable base)
@@ -102,6 +104,15 @@ Exceptions:
 | Calendar primary | `/open-apis/calendar/v4/calendars/primary` | Core ApiReq wrapper | tenant/user | v4 | `lark calendars list/create` (alias: `calendar`). |
 | Calendar events | `/open-apis/calendar/v4/calendars/:id/events` | Core ApiReq wrapper | tenant/user | v4 | `lark calendars list/create` (alias: `calendar`). |
 | Calendar attendees | `/open-apis/calendar/v4/calendars/:id/events/:event_id/attendees` | Core ApiReq wrapper | tenant/user | v4 | `lark calendars create` (alias: `calendar`). |
+| Tasks list | `/open-apis/task/v2/tasks` | Core ApiReq wrapper | user | v2 | `lark tasks list` (my_tasks). |
+| Tasks get | `/open-apis/task/v2/tasks/:task_guid` | Core ApiReq wrapper | tenant/user | v2 | `lark tasks info`. |
+| Tasks create | `/open-apis/task/v2/tasks` | Core ApiReq wrapper | tenant/user | v2 | `lark tasks create`. |
+| Tasks update | `/open-apis/task/v2/tasks/:task_guid` | Core ApiReq wrapper | tenant/user | v2 | `lark tasks update`. |
+| Tasks delete | `/open-apis/task/v2/tasks/:task_guid` | Core ApiReq wrapper | tenant/user | v2 | `lark tasks delete`. |
+| Task lists create | `/open-apis/task/v2/tasklists` | Core ApiReq wrapper | tenant/user | v2 | `lark tasklists create`. |
+| Task lists info | `/open-apis/task/v2/tasklists/:tasklist_guid` | Core ApiReq wrapper | tenant/user | v2 | `lark tasklists info`. |
+| Task lists update | `/open-apis/task/v2/tasklists/:tasklist_guid` | Core ApiReq wrapper | tenant/user | v2 | `lark tasklists update`. |
+| Task lists delete | `/open-apis/task/v2/tasklists/:tasklist_guid` | Core ApiReq wrapper | tenant/user | v2 | `lark tasklists delete`. |
 | Meetings info | `/open-apis/vc/v1/meetings/:meeting_id` | Core ApiReq wrapper | tenant/user | v1 | `lark meetings info`. |
 | Minutes info | `/open-apis/minutes/v1/minutes/:minute_token` | SDK minutes | tenant | v1 | `lark minutes info`. |
 | Minutes list | `/open-apis/drive/v1/files` | SDK drive list (filter type=minutes) | tenant/user | v1 | `lark minutes list`. |

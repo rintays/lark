@@ -31,6 +31,9 @@ Fast, script-friendly CLI for **Feishu (飞书)** / **Lark**.
   - read/update/append/clear/info/delete/list/search
 - **Calendar**
   - list/create events
+- **Tasks**
+  - list/get/create/update/delete tasks
+  - create/get/update/delete task lists
 - **Contacts**
   - basic user lookup
 - **Meetings / Minutes**
