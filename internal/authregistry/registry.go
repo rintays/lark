@@ -64,6 +64,44 @@ var Registry = map[string]ServiceDef{
 	"sheets": {Name: "sheets", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiredUserScopes: []string{"drive:drive"}, UserScopes: ServiceScopeSet{Full: []string{"drive:drive"}, Readonly: []string{"drive:drive:readonly"}}, RequiresOffline: true},
 
 	"calendar": {Name: "calendar", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiredUserScopes: []string{"calendar:calendar"}, UserScopes: ServiceScopeSet{Full: []string{"calendar:calendar"}, Readonly: []string{"calendar:calendar:readonly"}}},
+	"task": {
+		Name:               "task",
+		TokenTypes:         []TokenType{TokenTenant, TokenUser},
+		RequiredUserScopes: []string{"task:task:read"},
+		UserScopes: ServiceScopeSet{
+			Full:     []string{"task:task:write"},
+			Readonly: []string{"task:task:read"},
+		},
+		RequiresOffline: true,
+	},
+	"task-write": {
+		Name:               "task write",
+		TokenTypes:         []TokenType{TokenTenant, TokenUser},
+		RequiredUserScopes: []string{"task:task:write"},
+		UserScopes: ServiceScopeSet{
+			Full: []string{"task:task:write"},
+		},
+		RequiresOffline: true,
+	},
+	"tasklist": {
+		Name:               "tasklist",
+		TokenTypes:         []TokenType{TokenTenant, TokenUser},
+		RequiredUserScopes: []string{"task:tasklist:read"},
+		UserScopes: ServiceScopeSet{
+			Full:     []string{"task:tasklist:write"},
+			Readonly: []string{"task:tasklist:read"},
+		},
+		RequiresOffline: true,
+	},
+	"tasklist-write": {
+		Name:               "tasklist write",
+		TokenTypes:         []TokenType{TokenTenant, TokenUser},
+		RequiredUserScopes: []string{"task:tasklist:write"},
+		UserScopes: ServiceScopeSet{
+			Full: []string{"task:tasklist:write"},
+		},
+		RequiresOffline: true,
+	},
 	"mail": {
 		Name:       "mail",
 		TokenTypes: []TokenType{TokenTenant, TokenUser},

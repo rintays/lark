@@ -118,7 +118,6 @@
 - 2026-02-01: Added drive permission member list/update/delete commands and clarified docs/sheets help about using drive permissions with file tokens.
 - 2026-02-01: Clarified wiki help text to mention using drive permissions for underlying Drive objects.
 - 2026-02-01: Docs create/info now attempt Drive metadata URL lookup with user-token fallback when needed.
-- 2026-02-02: Users search now enriches emails and department names (name + ID) via batch user/department lookups.
 - 2026-02-01: Docs URL lookup now always retries with user token when available.
 - 2026-02-01: Docs get --format md now renders Markdown from docx blocks instead of raw_content.
 - 2026-02-01: Switched users search to search/v1/user with positional query, user-token scopes, and updated output/tests/docs.
@@ -127,6 +126,4 @@
 - 2026-02-01: Added detailed flag error usage output, expanded drive permissions examples, and enabled users search by email with updated columns.
 - 2026-02-01: Standardized required identifiers to positional args across chats/messages/calendar/drive/docs/sheets/wiki/base/meetings/minutes/mail, made search queries positional, and refreshed tests/README/examples.
 - 2026-02-01: Wrapped positional args validation errors with detailed usage output and hints for consistent CLI error messaging.
-- 2026-02-01: Base record search now always requests automatic fields, supports field selection, and renders fields in table output; base table create is positional-only.
-- 2026-02-01: Sheets update/append now normalize single-cell ranges, validate range size vs values, and support inline CSV/TSV via --values-format (plus TSV files); sheets create gains --sheet-title via sheets_batch_update, with README/tests updated.
-- 2026-02-02: Base record timestamps now accept numeric or string JSON values to prevent unmarshal errors in record operations.
+- 2026-02-02: Added tasks/tasklists CLI support with SDK wrappers (create/info/update/delete/list), updated auth registry mappings, tests, and docs.
