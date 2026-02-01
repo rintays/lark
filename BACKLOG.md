@@ -386,8 +386,8 @@ Additional consistency work:
   - [x] `bases record delete` now uses required flag validation for `--table-id` and `--record-id` (positional args set the flags) + unit tests assert stable required-flag errors
   - [x] `wiki member add/delete` now use required flag validation for `--member-type` and `--member-id` (positional args set the flags) + unit tests assert stable required-flag errors
   - [x] `mail mailbox set` now uses required flag validation for `--mailbox-id` (positional arg sets the flag) + unit test asserts stable required-flag error
+  - [x] `messages send` now uses required flag validation for `--receive-id` + unit test asserts stable required-flag error
   - [ ] TODO: audit remaining commands that still rely on manual required-input checks and decide whether to convert them to Cobra required-flag validation.
-    - `messages send` (`--receive-id` is still checked manually in `RunE` even though it’s marked required)
     - `wiki task info` (`task-id is required` check is still manual)
     - `bases field list/view list/record info/field update` (`table-id`/`record-id`/`field-id` required checks are still manual)
   - Goal: missing required flags should fail *before* making API calls.
@@ -395,7 +395,8 @@ Additional consistency work:
   - Keep runtime validations for things like file existence, output path not a directory, etc.
   - Add/adjust tests to ensure required-flag errors are stable.
   - [ ] TODO: remaining manual required checks in key commands (Args/RunE still returning "... is required"):
-    - `messages` send/reply/list/search/reactions/pin/unpin (receive-id/message-id/container-id/query/emoji/reaction-id)
+    - `messages` reply/list/search/reactions/pin/unpin (message-id/container-id/query/emoji/reaction-id)
+    - `messages send` (still needs cleanup for other required inputs, but `--receive-id` is now handled by required flag validation)
     - `chats update` (chat-id)
     - `drive` info/download/export/share/upload (file-token/file)
     - `docs` create/info/export/get/blocks/markdown convert/overwrite (title/doc-id/block-id)
