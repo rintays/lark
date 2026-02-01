@@ -133,3 +133,4 @@
 - 2026-02-02: Added runWithToken helper and migrated base commands to unified token/SDK/print flow with user-scope hints.
 - 2026-02-02: Added auth service annotations and runtime authregistry override map sourced from Cobra metadata.
 - 2026-02-02: Added app secret keychain storage with config/auth flags, config output updates, and README docs.
+- 2026-02-02: Fixed build regressions for base record timestamp output, added missing sheets create import, and updated user OAuth service list test for task features.
