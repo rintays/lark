@@ -136,8 +136,6 @@
 - 2026-02-02: Fixed build regressions for base record timestamp output, added missing sheets create import, and updated user OAuth service list test for task features.
 - 2026-02-02: Fixed panic when root command context is nil by defaulting to background for signal-aware execution.
 - 2026-02-02: Added `lark auth tenant`, removed deprecated user login `--scope`, surfaced available user OAuth scopes in help, and updated docs/tests.
-- 2026-02-02: Added Bubble Tea interactive picker for `lark auth user login` when no scopes/services flags are provided, with previous selections preselected and README updated.
-- 2026-02-02: Switched auth user login picker to Bubbles list + help with Lark blue theming, plus shared brand color in output theme.
 - 2026-02-02: Adjusted search-user OAuth scope mapping to require only `contact:user:search` (removed invalid contact user/department read scopes).
 - 2026-02-02: Merged docs/docx service scopes to docx OAuth scopes, added search-docs/drive-export services, and updated command scope mappings/tests (message search uses `im:message:readonly`).
 - 2026-02-02: Fixed interactive OAuth selection build error by removing invalid nil check on user account value.
@@ -152,3 +150,5 @@
 - 2026-02-02: Reworked messages list/search output to use a sender column with message text first and sender ID on the next line.
 - 2026-02-02: Adjusted messages list/search layout to align sender/time on line one and sender id + meta on line two.
 - 2026-02-02: Added Wiki node create/move/update-title/attach and space update-setting commands, fixed Wiki space create to use user tokens, added user-token support for Wiki v2 calls, and updated docs/coverage.
+- 2026-02-02: Added `lark wiki node tree` command for ASCII tree output with node tokens, plus docs/tests updates.
+- 2026-02-02: Added user OAuth scopes for IM chat commands (im:chat.group_info:readonly / im:chat) with updated auth tests and hints.
