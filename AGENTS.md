@@ -110,3 +110,4 @@
 - 2026-02-01: Expanded calendar event models, added create/update/get support for extra fields (body-json/body-file + query flags), and updated README examples.
 - 2026-02-01: Removed docs get/doc create legacy flags for required args, added best-effort URL fetch after docs create, and unescaped CLI content for docs convert/overwrite.
 - 2026-02-01: Calendar get now renders key/value details for all event fields and defaults to fetching attendees/meeting settings.
+- 2026-02-01: Calendar get now groups nested fields (time/location/vchat/check-in) into readable single-line values and skips empty subfields.
