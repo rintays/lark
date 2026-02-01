@@ -42,12 +42,6 @@ func newBaseFieldCreateCmd(state *appState) *cobra.Command {
 					return err
 				}
 			}
-			if strings.TrimSpace(tableID) == "" {
-				return errors.New("table-id is required")
-			}
-			if strings.TrimSpace(fieldName) == "" {
-				return errors.New("name is required")
-			}
 			fieldTypeNameSet := cmd.Flags().Changed("field-type")
 			fieldTypeIDSet := cmd.Flags().Changed("type")
 			if fieldTypeNameSet && fieldTypeIDSet {
@@ -102,6 +96,8 @@ func newBaseFieldCreateCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&propertyJSON, "property-json", "", "Field property JSON (object; see `bases field types` for hints)")
 	cmd.Flags().StringVar(&descriptionJSON, "description-json", "", "Field description JSON (object)")
 	_ = cmd.MarkFlagRequired("app-token")
+	_ = cmd.MarkFlagRequired("table-id")
+	_ = cmd.MarkFlagRequired("name")
 	return cmd
 }
 
