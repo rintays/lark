@@ -48,6 +48,23 @@ checksum:
 release:
   prerelease: auto
 
+brews:
+  - name: lark
+    # Users will install via: brew install rintays/tap/lark
+    repository:
+      owner: rintays
+      name: homebrew-tap
+      branch: main
+      token: "{{ .Env.HOMEBREW_TAP_GITHUB_TOKEN }}"
+    directory: Formula
+    homepage: https://github.com/rintays/lark
+    description: A Go CLI for Feishu/Lark inspired by gog
+    license: MIT
+    install: |
+      bin.install "lark"
+    test: |
+      system "#{bin}/lark", "version"
+
 changelog:
   sort: asc
   filters:

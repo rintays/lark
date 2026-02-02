@@ -43,6 +43,13 @@ Fast, script-friendly CLI for **Feishu (飞书)** / **Lark**.
 
 ## Installation
 
+### Homebrew (recommended)
+
+```bash
+brew tap rintays/tap
+brew install rintays/tap/lark
+```
+
 ### Install from GitHub Releases
 
 Download the archive for your OS from `https://github.com/rintays/lark/releases`, extract it, and move `lark` to your PATH.
