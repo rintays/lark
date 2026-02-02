@@ -234,28 +234,13 @@ func renderMessageTable(displays []messageDisplay, styles messageFormatStyles) s
 		right := strings.Join(display.rightLines, "\n")
 		rows = append(rows, []string{left, right})
 	}
-	purple := lipgloss.Color("99")
-	gray := lipgloss.Color("245")
-	lightGray := lipgloss.Color("241")
 	cell := lipgloss.NewStyle().Padding(0, 1).Align(lipgloss.Left)
-	oddRow := cell.Foreground(gray)
-	evenRow := cell.Foreground(lightGray)
 	table := liptable.New().
 		Rows(rows...).
 		Border(lipgloss.NormalBorder()).
-		BorderTop(false).
-		BorderBottom(false).
-		BorderLeft(false).
-		BorderRight(false).
 		BorderHeader(false).
-		BorderColumn(true).
-		BorderRow(true).
-		BorderStyle(lipgloss.NewStyle().Foreground(purple)).
 		StyleFunc(func(row, col int) lipgloss.Style {
-			if row%2 == 0 {
-				return evenRow
-			}
-			return oddRow
+			return cell
 		})
 	return table.Render()
 }
