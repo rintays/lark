@@ -42,3 +42,5 @@ jobs:
           args: release --clean --config /tmp/.goreleaser.yml
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Needed to push formula commits to a separate tap repo (rintays/homebrew-tap).
+          HOMEBREW_TAP_GITHUB_TOKEN: ${{ secrets.HOMEBREW_TAP_GITHUB_TOKEN }}
