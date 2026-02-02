@@ -1,8 +1,8 @@
 # lark CLI — BACKLOG (maintained by AG)
 
 **Owner:** AG  
-**Where:** `<workspace>/lark/BACKLOG.md` (mirror: `<workspace>/BACKLOG.md`)  
-**Repo:** `<workspace>/lark`  
+**Where:** `<repo>/BACKLOG.md` (mirror: `<workspace>/BACKLOG.md`)  
+**Repo:** `<repo>`  
 **Branch policy:** default development branch is **`main`** and changes must land on **`origin/main`** (unless Master explicitly requests a branch/PR flow).  
 **Last updated:** 2026-02-01 (Asia/Shanghai)
 
@@ -362,7 +362,7 @@ Deliverables:
   - [x] `users` top-level Short changed to "Manage users"
   - [x] `mail mailbox info` defaults mailbox-id (flag > config default_mailbox_id > `me`) + unit test
   - [x] `mail folders/list` help now documents mailbox-id defaulting (commit 23c634c)
-  - [x] README now points to the correct backlog path (`<workspace>/lark/BACKLOG.md`)
+  - [x] README now points to the correct backlog path (`<repo>/BACKLOG.md`)
   - [x] `calendars` help text uses plural canonical naming and documents the `calendar` alias (+ test)
 - [x] Fix: `docs` command no longer registers `list` twice.
 
