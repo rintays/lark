@@ -17,13 +17,13 @@ func newBaseTableCreateCmd(state *appState) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "create <name>",
 		Short: "Create a Bitable table",
-	Args: func(cmd *cobra.Command, args []string) error {
-		if err := cobra.ExactArgs(1)(cmd, args); err != nil {
-			return argsUsageError(cmd, err)
-		}
-		tableName = strings.TrimSpace(args[0])
-		if tableName == "" {
-			return errors.New("name is required")
+		Args: func(cmd *cobra.Command, args []string) error {
+			if err := cobra.ExactArgs(1)(cmd, args); err != nil {
+				return argsUsageError(cmd, err)
+			}
+			tableName = strings.TrimSpace(args[0])
+			if tableName == "" {
+				return errors.New("name is required")
 			}
 			return nil
 		},

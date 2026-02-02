@@ -86,6 +86,7 @@ func newRootCmd() *cobra.Command {
 				JSON:   state.JSON,
 				Styled: output.AutoStyle(out) && !state.JSON,
 			}
+			handleAutoUpdate(state)
 			sdkClient, err := larksdk.New(cfg)
 			if err == nil {
 				state.SDK = sdkClient
@@ -119,6 +120,7 @@ func newRootCmd() *cobra.Command {
 	cmd.PersistentFlags().StringVar(&state.BaseURL, "base-url", "", "base URL override")
 
 	cmd.AddCommand(newVersionCmd(state))
+	cmd.AddCommand(newUpgradeCmd(state))
 	cmd.AddCommand(newCompletionCmd())
 	cmd.AddCommand(newAuthCmd(state))
 	cmd.AddCommand(newWhoamiCmd(state))
