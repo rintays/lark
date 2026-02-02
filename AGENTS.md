@@ -159,3 +159,5 @@
 - 2026-02-02: Added `lark wiki node tree` command for ASCII tree output with node tokens, plus docs/tests updates.
 - 2026-02-02: Capped wiki node tree page_size to 50 to match API limits and avoid invalid page_size errors.
 - 2026-02-02: Added user OAuth scopes for IM chat commands (im:chat.group_info:readonly / im:chat) with updated auth tests and hints.
+- 2026-02-02: Added global output modes (`--plain`/`--color`) and confirmation controls (`--force`/`--no-input`), plus plain TSV table rendering and destructive-operation prompts.
+- 2026-02-02: Standardized authregistry-driven token selection with token-type-aware SDK calls (drive/docs/sheets/export), expanded resource URL parsing/root folder normalization, and updated usage errors/enums/tests.
