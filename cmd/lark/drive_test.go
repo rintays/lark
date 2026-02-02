@@ -1076,6 +1076,102 @@ func TestDriveDownloadCommand(t *testing.T) {
 	}
 }
 
+func TestDriveDownloadCommandDirectoryOut(t *testing.T) {
+	content := []byte("downloaded bytes")
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer token" {
+			t.Fatalf("missing auth header")
+		}
+		if r.URL.Path != "/open-apis/drive/v1/files/f1/download" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		w.Header().Set("Content-Disposition", "attachment; filename=\"download.txt\"")
+		_, _ = w.Write(content)
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	outDir := t.TempDir()
+
+	var buf bytes.Buffer
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "token",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+		},
+		Printer: output.Printer{Writer: &buf},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"download", "f1", "--out", outDir})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive download error: %v", err)
+	}
+
+	outPath := filepath.Join(outDir, "download.txt")
+	data, err := os.ReadFile(outPath)
+	if err != nil {
+		t.Fatalf("read downloaded file: %v", err)
+	}
+	if !bytes.Equal(data, content) {
+		t.Fatalf("unexpected file contents: %q", string(data))
+	}
+	if !strings.Contains(buf.String(), outPath) {
+		t.Fatalf("unexpected output: %q", buf.String())
+	}
+}
+
+func TestDriveDownloadCommandUsesUserToken(t *testing.T) {
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if r.Method != http.MethodGet {
+			t.Fatalf("expected GET, got %s", r.Method)
+		}
+		if r.Header.Get("Authorization") != "Bearer user-token" {
+			t.Fatalf("unexpected auth header: %s", r.Header.Get("Authorization"))
+		}
+		if r.URL.Path != "/open-apis/drive/v1/files/f1/download" {
+			t.Fatalf("unexpected path: %s", r.URL.Path)
+		}
+		_, _ = w.Write([]byte("downloaded bytes"))
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	outDir := t.TempDir()
+	outPath := filepath.Join(outDir, "download.txt")
+
+	state := &appState{
+		Config: &config.Config{
+			AppID:            "app",
+			AppSecret:        "secret",
+			BaseURL:          baseURL,
+			DefaultTokenType: "user",
+		},
+		Printer: output.Printer{Writer: io.Discard},
+	}
+	withUserAccount(state.Config, defaultUserAccountName, "user-token", "", time.Now().Add(2*time.Hour).Unix(), "")
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newDriveCmd(state)
+	cmd.SetArgs([]string{"download", "f1", "--out", outPath})
+	if err := cmd.Execute(); err != nil {
+		t.Fatalf("drive download error: %v", err)
+	}
+}
+
 func TestDriveExportCommand(t *testing.T) {
 	cases := []struct {
 		name    string

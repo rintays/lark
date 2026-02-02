@@ -413,32 +413,48 @@ func (c *Client) UploadDriveFile(ctx context.Context, token string, tokenType Ac
 	return result, nil
 }
 
-func (c *Client) DownloadDriveFile(ctx context.Context, token string, tokenType AccessTokenType, fileToken string) (io.ReadCloser, error) {
+type DriveDownload struct {
+	Reader   io.ReadCloser
+	FileName string
+}
+
+func (c *Client) DownloadDriveFile(ctx context.Context, token string, tokenType AccessTokenType, fileToken string) (DriveDownload, error) {
 	if !c.available() {
-		return nil, ErrUnavailable
+		return DriveDownload{}, ErrUnavailable
 	}
 	if fileToken == "" {
-		return nil, fmt.Errorf("file token is required")
+		return DriveDownload{}, fmt.Errorf("file token is required")
 	}
 	option, _, err := c.accessTokenOption(token, tokenType)
 	if err != nil {
-		return nil, err
+		return DriveDownload{}, err
 	}
+	return c.downloadDriveFile(ctx, fileToken, option)
+}
+
+func (c *Client) DownloadDriveFileWithUserToken(ctx context.Context, userAccessToken, fileToken string) (DriveDownload, error) {
+	return c.DownloadDriveFile(ctx, userAccessToken, AccessTokenUser, fileToken)
+}
+
+func (c *Client) downloadDriveFile(ctx context.Context, fileToken string, option larkcore.RequestOptionFunc) (DriveDownload, error) {
 	builder := larkdrive.NewDownloadFileReqBuilder().FileToken(fileToken)
 	resp, err := c.sdk.Drive.V1.File.Download(ctx, builder.Build(), option)
 	if err != nil {
-		return nil, err
+		return DriveDownload{}, err
 	}
 	if resp == nil {
-		return nil, errors.New("drive download failed: empty response")
+		return DriveDownload{}, errors.New("drive download failed: empty response")
+	}
+	if resp.File != nil {
+		return DriveDownload{
+			Reader:   io.NopCloser(resp.File),
+			FileName: strings.TrimSpace(resp.FileName),
+		}, nil
 	}
 	if !resp.Success() {
-		return nil, fmt.Errorf("drive download failed: %s", resp.Msg)
+		return DriveDownload{}, fmt.Errorf("drive download failed: %s", resp.Msg)
 	}
-	if resp.File == nil {
-		return nil, errors.New("drive download failed: empty file")
-	}
-	return io.NopCloser(resp.File), nil
+	return DriveDownload{}, errors.New("drive download failed: empty file")
 }
 
 func mapDriveFile(file *larkdrive.File) DriveFile {

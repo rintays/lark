@@ -343,9 +343,10 @@ func newDriveDownloadCmd(state *appState) *cobra.Command {
 		RunE: func(cmd *cobra.Command, args []string) error {
 			outPath = strings.TrimSpace(outPath)
 			writeStdout := outPath == "-"
+			outDir := ""
 			if !writeStdout {
 				if info, err := os.Stat(outPath); err == nil && info.IsDir() {
-					return fmt.Errorf("output path is a directory: %s", outPath)
+					outDir = outPath
 				}
 			}
 			token, tokenTypeValue, err := resolveAccessToken(cmd.Context(), state, tokenTypesTenantOrUser, nil)
@@ -355,11 +356,34 @@ func newDriveDownloadCmd(state *appState) *cobra.Command {
 			if _, err := requireSDK(state); err != nil {
 				return err
 			}
-			reader, err := state.SDK.DownloadDriveFile(cmd.Context(), token, larksdk.AccessTokenType(tokenTypeValue), fileToken)
+			download, err := state.SDK.DownloadDriveFile(cmd.Context(), token, larksdk.AccessTokenType(tokenTypeValue), fileToken)
 			if err != nil {
 				return err
 			}
-			defer reader.Close()
+			defer download.Reader.Close()
+			if !writeStdout && outDir != "" {
+				fileName := strings.TrimSpace(download.FileName)
+				if fileName == "" {
+					req := larksdk.GetDriveFileRequest{FileToken: fileToken}
+					var meta larksdk.DriveFile
+					if tokenTypeValue == tokenTypeUser {
+						meta, err = state.SDK.GetDriveFileMetadataWithUserToken(cmd.Context(), token, req)
+					} else {
+						meta, err = state.SDK.GetDriveFileMetadata(cmd.Context(), token, req)
+					}
+					if err == nil {
+						fileName = strings.TrimSpace(meta.Name)
+					}
+				}
+				fileName = strings.TrimSpace(fileName)
+				if fileName != "" {
+					fileName = filepath.Base(fileName)
+				}
+				if fileName == "" || fileName == "." || fileName == string(filepath.Separator) {
+					fileName = fileToken
+				}
+				outPath = filepath.Join(outDir, fileName)
+			}
 			var out io.Writer
 			var outFile *os.File
 			if writeStdout {
@@ -372,7 +396,7 @@ func newDriveDownloadCmd(state *appState) *cobra.Command {
 				defer outFile.Close()
 				out = outFile
 			}
-			written, err := io.Copy(out, reader)
+			written, err := io.Copy(out, download.Reader)
 			if err != nil {
 				return err
 			}
@@ -395,7 +419,7 @@ func newDriveDownloadCmd(state *appState) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVar(&outPath, "out", "", "output file path (or - for stdout)")
+	cmd.Flags().StringVar(&outPath, "out", "", "output file path or directory (or - for stdout)")
 	_ = cmd.MarkFlagRequired("out")
 	return cmd
 }
