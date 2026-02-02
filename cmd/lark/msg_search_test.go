@@ -103,10 +103,11 @@ func TestMsgSearchCommandWithSDK(t *testing.T) {
 		t.Fatalf("msg search error: %v", err)
 	}
 	outputText := buf.String()
-	if !strings.Contains(outputText, "id: m1") {
+	// The human-readable format is a small table; keep assertions resilient.
+	if !strings.Contains(outputText, "message id: m1") {
 		t.Fatalf("unexpected output: %q", outputText)
 	}
-	if !strings.Contains(outputText, "from: user:open_id:ou_1") {
+	if !strings.Contains(outputText, "sender open_id://ou_1") {
 		t.Fatalf("unexpected output: %q", outputText)
 	}
 	if !strings.Contains(outputText, "hello m1") {

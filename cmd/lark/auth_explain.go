@@ -48,13 +48,20 @@ func newAuthExplainCmd(state *appState) *cobra.Command {
 			var suggestedScopes []string
 			suggestedCmd := ""
 			if requiresUser {
-				suggestedScopes, err = authregistry.SuggestedUserOAuthScopesFromServices(services, readonly)
-				if err != nil {
-					return err
+				// For interactive UX, we want the *minimal* user scopes for the specific
+				// command by default. When --readonly is requested, prefer the service's
+				// readonly variants (if declared) so the suggested login stays least-privilege.
+				if readonly {
+					suggestedScopes, err = authregistry.SuggestedUserOAuthScopesFromServices(services, true)
+					if err != nil {
+						return err
+					}
+				} else {
+					suggestedScopes = append([]string(nil), requiredUserScopes...)
 				}
-				if requiresOffline {
-					suggestedScopes = ensureOfflineAccess(suggestedScopes)
-				}
+				// Always include offline_access first when suggesting a user login command.
+				// This mirrors the default UX and avoids surprising token refresh issues.
+				suggestedScopes = ensureOfflineAccess(suggestedScopes)
 				scopeArg := strings.Join(suggestedScopes, " ")
 				if scopeArg != "" {
 					suggestedCmd = fmt.Sprintf("lark auth user login --scopes %q", scopeArg)
