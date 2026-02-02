@@ -165,3 +165,4 @@
 - 2026-02-02: Updated README install section to mirror gogcli-style Homebrew/Build-from-source flow and moved releases below.
 - 2026-02-02: Clarified build-from-source usage by separating go install vs local binary commands in README.
 - 2026-02-02: Added concepts sections for Docs/Drive/Sheets/Wiki/Mail/Calendar/Meetings/Minutes/Tasks/IM in README.
+- 2026-02-02: Simplified Homebrew install command in README to use `brew install lark`.
