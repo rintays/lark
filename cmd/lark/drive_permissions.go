@@ -36,8 +36,8 @@ func newDrivePermissionAddCmd(state *appState) *cobra.Command {
 	var needNotification bool
 
 	cmd := &cobra.Command{
-		Use:     "add <file-token> <member-type> <member-id>",
-		Short:   "Add a Drive collaborator permission",
+		Use:   "add <file-token> <member-type> <member-id>",
+		Short: "Add a Drive collaborator permission",
 		Long: `Add a Drive collaborator permission.
 
 Arguments:
