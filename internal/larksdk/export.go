@@ -60,7 +60,11 @@ func (c *Client) CreateExportTask(ctx context.Context, token string, req CreateE
 		return "", errors.New("tenant access token is required")
 	}
 	if c.exportTaskSDKAvailable() {
-		return c.createExportTaskSDK(ctx, tenantToken, req)
+		// The larksuite SDK can return a generic "field validation failed" error
+		// for export task endpoints in some environments. Fall back to core HTTP.
+		if ticket, err := c.createExportTaskSDK(ctx, tenantToken, req); err == nil {
+			return ticket, nil
+		}
 	}
 	return c.createExportTaskCore(ctx, tenantToken, req)
 }
@@ -139,7 +143,11 @@ func (c *Client) GetExportTask(ctx context.Context, token, ticket string) (Expor
 		return ExportTaskResult{}, errors.New("tenant access token is required")
 	}
 	if c.exportTaskSDKAvailable() {
-		return c.getExportTaskSDK(ctx, tenantToken, ticket)
+		// The larksuite SDK can return a generic "field validation failed" error
+		// for export task endpoints in some environments. Fall back to core HTTP.
+		if result, err := c.getExportTaskSDK(ctx, tenantToken, ticket); err == nil {
+			return result, nil
+		}
 	}
 	return c.getExportTaskCore(ctx, tenantToken, ticket)
 }
@@ -204,7 +212,11 @@ func (c *Client) DownloadExportedFile(ctx context.Context, token, fileToken stri
 		return nil, errors.New("tenant access token is required")
 	}
 	if c.exportTaskSDKAvailable() {
-		return c.downloadExportTaskSDK(ctx, tenantToken, fileToken)
+		// The larksuite SDK can return a generic "field validation failed" error
+		// for export task endpoints in some environments. Fall back to core HTTP.
+		if rc, err := c.downloadExportTaskSDK(ctx, tenantToken, fileToken); err == nil {
+			return rc, nil
+		}
 	}
 	return c.downloadExportTaskCore(ctx, tenantToken, fileToken)
 }
