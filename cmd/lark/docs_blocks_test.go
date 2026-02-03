@@ -2,11 +2,11 @@ package main
 
 import (
 	"bytes"
+	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"strings"
 	"testing"
 	"time"
@@ -271,7 +271,7 @@ func TestDocsOverwriteCommand(t *testing.T) {
 
 func TestDocsOverwriteUploadsImages(t *testing.T) {
 	imageContent := []byte("fake-image")
-	var baseURL string
+	imageURL := "data:image/png;base64," + base64.StdEncoding.EncodeToString(imageContent)
 	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/open-apis/docx/v1/documents/blocks/convert":
@@ -292,13 +292,10 @@ func TestDocsOverwriteUploadsImages(t *testing.T) {
 						},
 					},
 					"block_id_to_image_urls": []map[string]any{
-						{"block_id": "img1", "image_url": baseURL + "/image.png"},
+						{"block_id": "img1", "image_url": imageURL},
 					},
 				},
 			})
-		case r.Method == http.MethodGet && r.URL.Path == "/image.png":
-			w.Header().Set("Content-Type", "image/png")
-			_, _ = w.Write(imageContent)
 		case r.Method == http.MethodPost && r.URL.Path == "/open-apis/drive/v1/medias/upload_all":
 			if !strings.HasPrefix(r.Header.Get("Content-Type"), "multipart/form-data; boundary=") {
 				t.Fatalf("unexpected content type: %s", r.Header.Get("Content-Type"))
@@ -388,9 +385,7 @@ func TestDocsOverwriteUploadsImages(t *testing.T) {
 			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.Path)
 		}
 	})
-	server := httptest.NewServer(handler)
-	defer server.Close()
-	baseURL = server.URL
+	httpClient, baseURL := testutil.NewTestClient(handler)
 
 	var buf bytes.Buffer
 	state := &appState{
@@ -403,14 +398,14 @@ func TestDocsOverwriteUploadsImages(t *testing.T) {
 		},
 		Printer: output.Printer{Writer: &buf},
 	}
-	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(server.Client()))
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
 	if err != nil {
 		t.Fatalf("sdk client error: %v", err)
 	}
 	state.SDK = sdkClient
 
 	cmd := newDocsCmd(state)
-	cmd.SetArgs([]string{"overwrite", "doc1", "--content", "![img](" + baseURL + "/image.png)"})
+	cmd.SetArgs([]string{"overwrite", "doc1", "--content", "![img](" + imageURL + ")"})
 	if err := cmd.Execute(); err != nil {
 		t.Fatalf("docs overwrite error: %v", err)
 	}

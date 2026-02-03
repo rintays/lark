@@ -83,7 +83,10 @@ func (c *Client) createExportTaskSDK(ctx context.Context, option larkcore.Reques
 		return "", errors.New("create export task failed: empty response")
 	}
 	if !resp.Success() {
-		return "", fmt.Errorf("create export task failed: %s", resp.Msg)
+		if resp.Code == 99992402 {
+			return "", fmt.Errorf("create export task failed: %s (code=%d); request validation failed, check required parameters", resp.Msg, resp.Code)
+		}
+		return "", fmt.Errorf("create export task failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	if resp.Data == nil || resp.Data.Ticket == nil || *resp.Data.Ticket == "" {
 		return "", errors.New("export task response missing ticket")
@@ -119,7 +122,10 @@ func (c *Client) createExportTaskCore(ctx context.Context, option larkcore.Reque
 		return "", err
 	}
 	if !resp.Success() {
-		return "", fmt.Errorf("create export task failed: %s", resp.Msg)
+		if resp.Code == 99992402 {
+			return "", fmt.Errorf("create export task failed: %s (code=%d); request validation failed, check required parameters", resp.Msg, resp.Code)
+		}
+		return "", fmt.Errorf("create export task failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	if resp.Data == nil || resp.Data.Ticket == "" {
 		return "", errors.New("export task response missing ticket")
@@ -127,21 +133,23 @@ func (c *Client) createExportTaskCore(ctx context.Context, option larkcore.Reque
 	return resp.Data.Ticket, nil
 }
 
-func (c *Client) GetExportTask(ctx context.Context, token string, tokenType AccessTokenType, ticket string) (ExportTaskResult, error) {
+func (c *Client) GetExportTask(ctx context.Context, token string, tokenType AccessTokenType, ticket string, exportToken string) (ExportTaskResult, error) {
 	if c == nil || c.coreConfig == nil {
 		return ExportTaskResult{}, ErrUnavailable
 	}
 	if ticket == "" {
 		return ExportTaskResult{}, fmt.Errorf("export ticket is required")
 	}
+	if exportToken == "" {
+		return ExportTaskResult{}, fmt.Errorf("export token is required")
+	}
 	option, _, err := c.accessTokenOption(token, tokenType)
 	if err != nil {
 		return ExportTaskResult{}, err
 	}
-	if c.exportTaskSDKAvailable() {
-		return c.getExportTaskSDK(ctx, option, ticket)
-	}
-	return c.getExportTaskCore(ctx, option, ticket)
+	// The export task status endpoint requires the original file token as a query parameter.
+	// The larksuite SDK request builder doesn't expose it, so always use the core HTTP path.
+	return c.getExportTaskCore(ctx, option, ticket, exportToken)
 }
 
 func (c *Client) getExportTaskSDK(ctx context.Context, option larkcore.RequestOptionFunc, ticket string) (ExportTaskResult, error) {
@@ -154,7 +162,10 @@ func (c *Client) getExportTaskSDK(ctx context.Context, option larkcore.RequestOp
 		return ExportTaskResult{}, errors.New("get export task failed: empty response")
 	}
 	if !resp.Success() {
-		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s", resp.Msg)
+		if resp.Code == 99992402 {
+			return ExportTaskResult{}, fmt.Errorf("get export task failed: %s (code=%d); likely missing required parameters, including the token query parameter for the original file token", resp.Msg, resp.Code)
+		}
+		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	if resp.Data == nil || resp.Data.Result == nil {
 		return ExportTaskResult{}, nil
@@ -162,12 +173,14 @@ func (c *Client) getExportTaskSDK(ctx context.Context, option larkcore.RequestOp
 	return mapExportTask(resp.Data.Result), nil
 }
 
-func (c *Client) getExportTaskCore(ctx context.Context, option larkcore.RequestOptionFunc, ticket string) (ExportTaskResult, error) {
+func (c *Client) getExportTaskCore(ctx context.Context, option larkcore.RequestOptionFunc, ticket string, exportToken string) (ExportTaskResult, error) {
 	apiReq := &larkcore.ApiReq{
-		ApiPath:                   "/open-apis/drive/v1/export_tasks/:ticket",
-		HttpMethod:                http.MethodGet,
-		PathParams:                larkcore.PathParams{},
-		QueryParams:               larkcore.QueryParams{},
+		ApiPath:    "/open-apis/drive/v1/export_tasks/:ticket",
+		HttpMethod: http.MethodGet,
+		PathParams: larkcore.PathParams{},
+		QueryParams: larkcore.QueryParams{
+			"token": []string{exportToken},
+		},
 		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeTenant, larkcore.AccessTokenTypeUser},
 	}
 	apiReq.PathParams.Set("ticket", ticket)
@@ -184,7 +197,10 @@ func (c *Client) getExportTaskCore(ctx context.Context, option larkcore.RequestO
 		return ExportTaskResult{}, err
 	}
 	if !resp.Success() {
-		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s", resp.Msg)
+		if resp.Code == 99992402 {
+			return ExportTaskResult{}, fmt.Errorf("get export task failed: %s (code=%d); likely missing required parameters, including the token query parameter for the original file token", resp.Msg, resp.Code)
+		}
+		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	if resp.Data == nil {
 		return ExportTaskResult{}, nil
@@ -222,7 +238,7 @@ func (c *Client) downloadExportTaskSDK(ctx context.Context, option larkcore.Requ
 		return io.NopCloser(resp.File), nil
 	}
 	if resp.Msg != "" {
-		return nil, fmt.Errorf("export download failed: %s", resp.Msg)
+		return nil, fmt.Errorf("export download failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	return nil, errors.New("export download failed: empty file response")
 }
