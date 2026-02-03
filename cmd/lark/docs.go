@@ -178,7 +178,7 @@ func newDocsExportCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			ticket, token, tokenTypeValue, err := createExportTaskWithFallback(cmd.Context(), state, token, tokenTypeValue, larksdk.CreateExportTaskRequest{
+			ticket, err := state.SDK.CreateExportTask(cmd.Context(), token, larksdk.AccessTokenType(tokenTypeValue), larksdk.CreateExportTaskRequest{
 				Token:         documentID,
 				Type:          "docx",
 				FileExtension: format,
@@ -186,11 +186,11 @@ func newDocsExportCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, token, tokenTypeValue, err := pollExportTaskWithFallback(cmd.Context(), state, token, tokenTypeValue, ticket, documentID)
+			result, err := pollExportTask(cmd.Context(), state.SDK, token, larksdk.AccessTokenType(tokenTypeValue), ticket, documentID)
 			if err != nil {
 				return err
 			}
-			reader, token, tokenTypeValue, err := downloadExportedFileWithFallback(cmd.Context(), state, token, tokenTypeValue, result.FileToken)
+			reader, err := state.SDK.DownloadExportedFile(cmd.Context(), token, larksdk.AccessTokenType(tokenTypeValue), result.FileToken)
 			if err != nil {
 				return err
 			}

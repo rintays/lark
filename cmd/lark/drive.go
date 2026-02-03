@@ -467,7 +467,7 @@ func newDriveExportCmd(state *appState) *cobra.Command {
 			if _, err := requireSDK(state); err != nil {
 				return err
 			}
-			ticket, token, tokenTypeValue, err := createExportTaskWithFallback(cmd.Context(), state, token, tokenTypeValue, larksdk.CreateExportTaskRequest{
+			ticket, err := state.SDK.CreateExportTask(cmd.Context(), token, larksdk.AccessTokenType(tokenTypeValue), larksdk.CreateExportTaskRequest{
 				Token:         fileToken,
 				Type:          fileType,
 				FileExtension: format,
@@ -475,11 +475,11 @@ func newDriveExportCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, token, tokenTypeValue, err := pollExportTaskWithFallback(cmd.Context(), state, token, tokenTypeValue, ticket, fileToken)
+			result, err := pollExportTask(cmd.Context(), state.SDK, token, larksdk.AccessTokenType(tokenTypeValue), ticket, fileToken)
 			if err != nil {
 				return err
 			}
-			reader, token, tokenTypeValue, err := downloadExportedFileWithFallback(cmd.Context(), state, token, tokenTypeValue, result.FileToken)
+			reader, err := state.SDK.DownloadExportedFile(cmd.Context(), token, larksdk.AccessTokenType(tokenTypeValue), result.FileToken)
 			if err != nil {
 				return err
 			}

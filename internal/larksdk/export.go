@@ -83,6 +83,9 @@ func (c *Client) createExportTaskSDK(ctx context.Context, option larkcore.Reques
 		return "", errors.New("create export task failed: empty response")
 	}
 	if !resp.Success() {
+		if resp.Code == 99992402 {
+			return "", fmt.Errorf("create export task failed: %s (code=%d); request validation failed, check required parameters", resp.Msg, resp.Code)
+		}
 		return "", fmt.Errorf("create export task failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	if resp.Data == nil || resp.Data.Ticket == nil || *resp.Data.Ticket == "" {
@@ -119,6 +122,9 @@ func (c *Client) createExportTaskCore(ctx context.Context, option larkcore.Reque
 		return "", err
 	}
 	if !resp.Success() {
+		if resp.Code == 99992402 {
+			return "", fmt.Errorf("create export task failed: %s (code=%d); request validation failed, check required parameters", resp.Msg, resp.Code)
+		}
 		return "", fmt.Errorf("create export task failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	if resp.Data == nil || resp.Data.Ticket == "" {
@@ -156,6 +162,9 @@ func (c *Client) getExportTaskSDK(ctx context.Context, option larkcore.RequestOp
 		return ExportTaskResult{}, errors.New("get export task failed: empty response")
 	}
 	if !resp.Success() {
+		if resp.Code == 99992402 {
+			return ExportTaskResult{}, fmt.Errorf("get export task failed: %s (code=%d); likely missing required parameters, including the token query parameter for the original file token", resp.Msg, resp.Code)
+		}
 		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	if resp.Data == nil || resp.Data.Result == nil {
@@ -188,6 +197,9 @@ func (c *Client) getExportTaskCore(ctx context.Context, option larkcore.RequestO
 		return ExportTaskResult{}, err
 	}
 	if !resp.Success() {
+		if resp.Code == 99992402 {
+			return ExportTaskResult{}, fmt.Errorf("get export task failed: %s (code=%d); likely missing required parameters, including the token query parameter for the original file token", resp.Msg, resp.Code)
+		}
 		return ExportTaskResult{}, fmt.Errorf("get export task failed: %s (code=%d)", resp.Msg, resp.Code)
 	}
 	if resp.Data == nil {
