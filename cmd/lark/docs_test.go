@@ -378,8 +378,15 @@ func TestDocsExportCommand(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer token" {
 			t.Fatalf("missing auth header")
 		}
-		if r.URL.RawQuery != "" {
-			t.Fatalf("unexpected query: %q", r.URL.RawQuery)
+		// Get export task requires the original file token as query parameter.
+		if r.Method == http.MethodGet && r.URL.Path == "/open-apis/drive/v1/export_tasks/ticket1" {
+			if r.URL.RawQuery != "token=doc1" {
+				t.Fatalf("unexpected query: %q", r.URL.RawQuery)
+			}
+		} else {
+			if r.URL.RawQuery != "" {
+				t.Fatalf("unexpected query: %q", r.URL.RawQuery)
+			}
 		}
 		switch {
 		case r.Method == http.MethodPost && r.URL.Path == "/open-apis/drive/v1/export_tasks":
@@ -656,5 +663,67 @@ func TestDocsExportCommandRequiresSDK(t *testing.T) {
 	}
 	if !strings.Contains(err.Error(), "app_id and app_secret") && !strings.Contains(err.Error(), "missing app credentials") {
 		t.Fatalf("unexpected error: %v", err)
+	}
+}
+
+func TestDocsExportFieldValidationDoesNotFallback(t *testing.T) {
+	calls := make([]string, 0, 4)
+	handler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		auth := r.Header.Get("Authorization")
+		calls = append(calls, r.Method+" "+r.URL.Path+" "+auth)
+
+		switch {
+		case r.Method == http.MethodPost && r.URL.Path == "/open-apis/drive/v1/export_tasks":
+			w.Header().Set("Content-Type", "application/json")
+			if auth != "Bearer tenant" {
+				t.Fatalf("unexpected auth header: %q", auth)
+			}
+			_ = json.NewEncoder(w).Encode(map[string]any{"code": 99992402, "msg": "field validation failed", "data": map[string]any{}})
+			return
+		default:
+			t.Fatalf("unexpected request: %s %s", r.Method, r.URL.String())
+		}
+	})
+	httpClient, baseURL := testutil.NewTestClient(handler)
+
+	dir := t.TempDir()
+	outPath := filepath.Join(dir, "out.pdf")
+
+	state := &appState{
+		Config: &config.Config{
+			AppID:                      "app",
+			AppSecret:                  "secret",
+			BaseURL:                    baseURL,
+			TenantAccessToken:          "tenant",
+			TenantAccessTokenExpiresAt: time.Now().Add(2 * time.Hour).Unix(),
+			KeyringBackend:             "file",
+		},
+		Printer: output.Printer{Writer: &bytes.Buffer{}},
+	}
+	sdkClient, err := larksdk.New(state.Config, larksdk.WithHTTPClient(httpClient))
+	if err != nil {
+		t.Fatalf("sdk client error: %v", err)
+	}
+	state.SDK = sdkClient
+
+	cmd := newDocsCmd(state)
+	cmd.SetArgs([]string{"export", "doc1", "--format", "pdf", "--out", outPath})
+	err = cmd.Execute()
+	if err == nil {
+		t.Fatal("expected error")
+	}
+	if !strings.Contains(err.Error(), "code=99992402") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.Contains(err.Error(), "validation") {
+		t.Fatalf("unexpected error: %v", err)
+	}
+
+	joined := strings.Join(calls, "\n")
+	if !strings.Contains(joined, "POST /open-apis/drive/v1/export_tasks Bearer tenant") {
+		t.Fatalf("expected tenant create call, got:\n%s", joined)
+	}
+	if strings.Contains(joined, "Bearer user") {
+		t.Fatalf("unexpected user token fallback:\n%s", joined)
 	}
 }

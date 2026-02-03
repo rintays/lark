@@ -5,12 +5,12 @@ import (
 	"encoding/json"
 	"io"
 	"net/http"
-	"net/http/httptest"
 	"net/url"
 	"strings"
 	"testing"
 
 	"lark/internal/config"
+	"lark/internal/testutil"
 )
 
 func TestBuildUserAuthorizeURL(t *testing.T) {
@@ -151,7 +151,7 @@ func TestResolveUserOAuthScopesFromServicesReadonly(t *testing.T) {
 }
 
 func TestExchangeUserAccessToken(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	httpClient, baseURL := testutil.NewTestClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		if r.Method != http.MethodPost {
 			t.Fatalf("expected POST, got %s", r.Method)
 		}
@@ -184,9 +184,8 @@ func TestExchangeUserAccessToken(t *testing.T) {
 		w.Header().Set("Content-Type", "application/json")
 		_, _ = io.WriteString(w, `{"access_token":"user-token","refresh_token":"refresh-token","expires_in":3600,"token_type":"Bearer","scope":"offline_access"}`)
 	}))
-	defer server.Close()
 
-	token, err := exchangeUserAccessToken(context.Background(), server.Client(), server.URL, "app-id", "app-secret", "auth-code", userOAuthRedirectURL)
+	token, err := exchangeUserAccessToken(context.Background(), httpClient, baseURL, "app-id", "app-secret", "auth-code", userOAuthRedirectURL)
 	if err != nil {
 		t.Fatalf("exchange token: %v", err)
 	}
