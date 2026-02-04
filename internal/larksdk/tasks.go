@@ -108,6 +108,18 @@ type ListTasksResult struct {
 	HasMore   bool
 }
 
+type ListTasklistsRequest struct {
+	PageSize   int
+	PageToken  string
+	UserIDType string
+}
+
+type ListTasklistsResult struct {
+	Items     []TaskList
+	PageToken string
+	HasMore   bool
+}
+
 type CreateTasklistRequest struct {
 	Name       string
 	Members    []TaskMember
@@ -176,6 +188,21 @@ type listTasksResponseData struct {
 }
 
 func (r *listTasksResponse) Success() bool { return r.Code == 0 }
+
+type listTasklistsResponse struct {
+	*larkcore.ApiResp `json:"-"`
+	larkcore.CodeError
+	Data *listTasklistsResponseData `json:"data"`
+}
+
+type listTasklistsResponseData struct {
+	Items     []TaskList `json:"items"`
+	Tasklists []TaskList `json:"tasklists"`
+	PageToken *string    `json:"page_token"`
+	HasMore   *bool      `json:"has_more"`
+}
+
+func (r *listTasklistsResponse) Success() bool { return r.Code == 0 }
 
 type deleteTaskResponse struct {
 	*larkcore.ApiResp `json:"-"`
@@ -567,6 +594,70 @@ func (c *Client) ListTasks(ctx context.Context, userAccessToken string, req List
 		if resp.Data.Items != nil {
 			result.Items = resp.Data.Items
 		}
+		if resp.Data.PageToken != nil {
+			result.PageToken = *resp.Data.PageToken
+		}
+		if resp.Data.HasMore != nil {
+			result.HasMore = *resp.Data.HasMore
+		}
+	}
+	return result, nil
+}
+
+func (c *Client) ListTasklists(ctx context.Context, userAccessToken string, req ListTasklistsRequest) (ListTasklistsResult, error) {
+	if !c.available() || c.coreConfig == nil {
+		return ListTasklistsResult{}, ErrUnavailable
+	}
+	userAccessToken = strings.TrimSpace(userAccessToken)
+	if userAccessToken == "" {
+		return ListTasklistsResult{}, errors.New("user access token is required")
+	}
+	if req.PageSize < 0 {
+		return ListTasklistsResult{}, errors.New("page_size must be greater than or equal to 0")
+	}
+	if req.PageSize > 500 {
+		return ListTasklistsResult{}, errors.New("page_size must be less than or equal to 500")
+	}
+
+	apiReq := &larkcore.ApiReq{
+		ApiPath:                   "/open-apis/task/v2/tasklists",
+		HttpMethod:                http.MethodGet,
+		PathParams:                larkcore.PathParams{},
+		QueryParams:               larkcore.QueryParams{},
+		SupportedAccessTokenTypes: []larkcore.AccessTokenType{larkcore.AccessTokenTypeUser},
+	}
+	if req.PageSize > 0 {
+		apiReq.QueryParams.Set("page_size", fmt.Sprint(req.PageSize))
+	}
+	if strings.TrimSpace(req.PageToken) != "" {
+		apiReq.QueryParams.Set("page_token", req.PageToken)
+	}
+	if strings.TrimSpace(req.UserIDType) != "" {
+		apiReq.QueryParams.Set("user_id_type", req.UserIDType)
+	}
+
+	apiResp, err := larkcore.Request(ctx, apiReq, c.coreConfig, larkcore.WithUserAccessToken(userAccessToken))
+	if err != nil {
+		return ListTasklistsResult{}, err
+	}
+	if apiResp == nil {
+		return ListTasklistsResult{}, errors.New("list tasklists failed: empty response")
+	}
+	resp := &listTasklistsResponse{ApiResp: apiResp}
+	if err := apiResp.JSONUnmarshalBody(resp, c.coreConfig); err != nil {
+		return ListTasklistsResult{}, err
+	}
+	if !resp.Success() {
+		return ListTasklistsResult{}, formatCodeError("list tasklists failed", resp.CodeError, resp.ApiResp)
+	}
+
+	result := ListTasklistsResult{}
+	if resp.Data != nil {
+		items := resp.Data.Items
+		if len(items) == 0 && len(resp.Data.Tasklists) > 0 {
+			items = resp.Data.Tasklists
+		}
+		result.Items = items
 		if resp.Data.PageToken != nil {
 			result.PageToken = *resp.Data.PageToken
 		}

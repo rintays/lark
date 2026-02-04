@@ -16,7 +16,7 @@ func newDrivePermissionsCmd(state *appState) *cobra.Command {
 		Short: "Manage Drive file permissions",
 		Long: `Manage Drive file collaborator permissions.
 
-- file-token is the Drive file token (docx document_id, spreadsheet_token, or file_token).`,
+- file-token is the Drive file_token (use drive list/search to find it).`,
 	}
 	cmd.AddCommand(newDrivePermissionAddCmd(state))
 	cmd.AddCommand(newDrivePermissionListCmd(state))
@@ -41,7 +41,7 @@ func newDrivePermissionAddCmd(state *appState) *cobra.Command {
 		Long: `Add a Drive collaborator permission.
 
 Arguments:
-  file-token: Drive file token (docx document_id, spreadsheet_token, or file_token).
+  file-token: Drive file_token (use drive list/search to find it).
   member-type: collaborator identifier type (openid, userid, email, openchat, opendepartmentid).
   member-id: identifier value for the chosen member-type.
 `,
@@ -73,6 +73,9 @@ Arguments:
 			}
 			if refKind != "" && !cmd.Flags().Changed("type") {
 				_ = cmd.Flags().Set("type", refKind)
+			}
+			if err := validateDrivePermissionsDocxToken(cmd, fileType, fileToken, refKind); err != nil {
+				return err
 			}
 			return nil
 		},
@@ -167,6 +170,9 @@ func newDrivePermissionListCmd(state *appState) *cobra.Command {
 			if refKind != "" && !cmd.Flags().Changed("type") {
 				_ = cmd.Flags().Set("type", refKind)
 			}
+			if err := validateDrivePermissionsDocxToken(cmd, fileType, fileToken, refKind); err != nil {
+				return err
+			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -258,6 +264,9 @@ func newDrivePermissionUpdateCmd(state *appState) *cobra.Command {
 			}
 			if refKind != "" && !cmd.Flags().Changed("type") {
 				_ = cmd.Flags().Set("type", refKind)
+			}
+			if err := validateDrivePermissionsDocxToken(cmd, fileType, fileToken, refKind); err != nil {
+				return err
 			}
 			return nil
 		},
@@ -369,6 +378,9 @@ func newDrivePermissionDeleteCmd(state *appState) *cobra.Command {
 			if refKind != "" && !cmd.Flags().Changed("type") {
 				_ = cmd.Flags().Set("type", refKind)
 			}
+			if err := validateDrivePermissionsDocxToken(cmd, fileType, fileToken, refKind); err != nil {
+				return err
+			}
 			return nil
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -421,4 +433,43 @@ func newDrivePermissionDeleteCmd(state *appState) *cobra.Command {
 	cmd.Flags().StringVar(&memberKind, "member-kind", "", "collaborator type (user, chat, department, group, wiki_space_member, wiki_space_viewer, wiki_space_editor)")
 	_ = cmd.MarkFlagRequired("type")
 	return cmd
+}
+
+func validateDrivePermissionsDocxToken(cmd *cobra.Command, fileType, fileToken, refKind string) error {
+	if !strings.EqualFold(strings.TrimSpace(fileType), "docx") {
+		return nil
+	}
+	refKind = strings.TrimSpace(refKind)
+	if refKind != "" && strings.EqualFold(refKind, "docx") {
+		return driveDocxTokenUsageError(cmd)
+	}
+	if looksLikeDocxDocumentID(fileToken) {
+		return driveDocxTokenUsageError(cmd)
+	}
+	return nil
+}
+
+func driveDocxTokenUsageError(cmd *cobra.Command) error {
+	return usageError(cmd,
+		"Drive permissions require a Drive file_token for docx documents; document_id is not supported.",
+		"Use `lark drive search <title>` or `lark drive list` to obtain the file_token. If the doc is inside wiki, use the wiki permission flow.",
+	)
+}
+
+func looksLikeDocxDocumentID(token string) bool {
+	trimmed := strings.TrimSpace(token)
+	if len(trimmed) < 20 || len(trimmed) > 30 {
+		return false
+	}
+	for _, r := range trimmed {
+		switch {
+		case r >= 'a' && r <= 'z':
+		case r >= 'A' && r <= 'Z':
+		case r >= '0' && r <= '9':
+		case r == '-' || r == '_':
+		default:
+			return false
+		}
+	}
+	return true
 }

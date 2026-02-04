@@ -21,10 +21,87 @@ func newTasklistsCmd(state *appState) *cobra.Command {
 - tasklist-guid identifies a list (UUID-like string).
 - create/update support members and ownership updates.`,
 	}
+	cmd.AddCommand(newTasklistListCmd(state))
 	cmd.AddCommand(newTasklistCreateCmd(state))
 	cmd.AddCommand(newTasklistInfoCmd(state))
 	cmd.AddCommand(newTasklistUpdateCmd(state))
 	cmd.AddCommand(newTasklistDeleteCmd(state))
+	return cmd
+}
+
+const (
+	defaultTasklistsLimit = 50
+	maxTasklistsPageSize  = 500
+)
+
+func newTasklistListCmd(state *appState) *cobra.Command {
+	var limit int
+
+	cmd := &cobra.Command{
+		Use:   "list",
+		Short: "List task lists",
+		Args:  cobra.NoArgs,
+		PreRunE: func(cmd *cobra.Command, args []string) error {
+			if limit <= 0 {
+				return flagUsage(cmd, "limit must be greater than 0")
+			}
+			if limit > maxTasklistsPageSize {
+				limit = maxTasklistsPageSize
+			}
+			if _, err := requireSDK(state); err != nil {
+				return err
+			}
+			return nil
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			ctx := cmd.Context()
+			token, _, err := resolveAccessToken(ctx, state, tokenTypesUser, nil)
+			if err != nil {
+				return err
+			}
+			tasklists := make([]larksdk.TaskList, 0, limit)
+			pageToken := ""
+			remaining := limit
+			for {
+				pageSize := remaining
+				if pageSize > maxTasklistsPageSize {
+					pageSize = maxTasklistsPageSize
+				}
+				result, err := state.SDK.ListTasklists(ctx, token, larksdk.ListTasklistsRequest{
+					PageSize:  pageSize,
+					PageToken: pageToken,
+				})
+				if err != nil {
+					return err
+				}
+				tasklists = append(tasklists, result.Items...)
+				if len(tasklists) >= limit || !result.HasMore {
+					break
+				}
+				remaining = limit - len(tasklists)
+				pageToken = result.PageToken
+				if pageToken == "" {
+					break
+				}
+			}
+			if len(tasklists) > limit {
+				tasklists = tasklists[:limit]
+			}
+			payload := map[string]any{"tasklists": tasklists}
+			lines := make([]string, 0, len(tasklists))
+			for _, tasklist := range tasklists {
+				ownerID := ""
+				if tasklist.Owner != nil {
+					ownerID = tasklist.Owner.ID
+				}
+				lines = append(lines, fmt.Sprintf("%s\t%s\t%s\t%s", tasklist.GUID, tasklist.Name, ownerID, tasklist.UpdatedAt))
+			}
+			text := tableText([]string{"tasklist_guid", "name", "owner", "updated_at"}, lines, "no tasklists found")
+			return state.Printer.Print(payload, text)
+		},
+	}
+
+	cmd.Flags().IntVar(&limit, "limit", defaultTasklistsLimit, "max number of task lists to return (max 500)")
 	return cmd
 }
 
