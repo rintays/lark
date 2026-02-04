@@ -170,7 +170,12 @@ func (c *Client) getExportTaskSDK(ctx context.Context, option larkcore.RequestOp
 	if resp.Data == nil || resp.Data.Result == nil {
 		return ExportTaskResult{}, nil
 	}
-	return mapExportTask(resp.Data.Result), nil
+	result := mapExportTask(resp.Data.Result)
+	if resp.ApiResp != nil {
+		result.RequestID = resp.RequestId()
+		result.LogID = resp.LogId()
+	}
+	return result, nil
 }
 
 func (c *Client) getExportTaskCore(ctx context.Context, option larkcore.RequestOptionFunc, ticket string, exportToken string) (ExportTaskResult, error) {
@@ -205,7 +210,12 @@ func (c *Client) getExportTaskCore(ctx context.Context, option larkcore.RequestO
 	if resp.Data == nil {
 		return ExportTaskResult{}, nil
 	}
-	return resp.Data.Result, nil
+	result := resp.Data.Result
+	if apiResp != nil {
+		result.RequestID = apiResp.RequestId()
+		result.LogID = apiResp.LogId()
+	}
+	return result, nil
 }
 
 func (c *Client) DownloadExportedFile(ctx context.Context, token string, tokenType AccessTokenType, fileToken string) (io.ReadCloser, error) {

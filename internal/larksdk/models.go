@@ -542,6 +542,9 @@ type ExportTaskResult struct {
 	FileSize      int64  `json:"file_size"`
 	JobErrorMsg   string `json:"job_error_msg"`
 	JobStatus     int    `json:"job_status"`
+	URL           string `json:"url,omitempty"`
+	RequestID     string `json:"request_id,omitempty"`
+	LogID         string `json:"log_id,omitempty"`
 }
 
 type SheetValueRange struct {

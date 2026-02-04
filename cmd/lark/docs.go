@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io"
@@ -25,7 +26,7 @@ func newDocsCmd(state *appState) *cobra.Command {
 		Short: "Manage Docs (docx) documents",
 		Long: `Docs (docx) are document files stored in Drive.
 
-- document_id is the docx file token (use it as FILE_TOKEN for drive permissions).
+- document_id identifies the docx document; Drive permissions require the Drive file_token (use drive list/search).
 - A doc contains blocks (paragraphs, headings, lists, tables, images) that make up its structure and content.
 - Documents can live in a Drive folder (folder-id).
 - Docx is the default API surface; legacy docs scopes are deprecated.
@@ -186,7 +187,11 @@ func newDocsExportCmd(state *appState) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			result, err := pollExportTask(cmd.Context(), state.SDK, token, larksdk.AccessTokenType(tokenTypeValue), ticket, documentID)
+			diagnostics := &exportTaskDiagnostics{
+				Verbose: state.Verbose,
+				Writer:  errWriter(state),
+			}
+			result, err := pollExportTask(cmd.Context(), state.SDK, token, larksdk.AccessTokenType(tokenTypeValue), ticket, documentID, diagnostics)
 			if err != nil {
 				return err
 			}
@@ -452,7 +457,12 @@ type exportTaskClient interface {
 	GetExportTask(ctx context.Context, token string, tokenType larksdk.AccessTokenType, ticket string, exportToken string) (larksdk.ExportTaskResult, error)
 }
 
-func pollExportTask(ctx context.Context, client exportTaskClient, token string, tokenType larksdk.AccessTokenType, ticket string, exportToken string) (larksdk.ExportTaskResult, error) {
+type exportTaskDiagnostics struct {
+	Verbose bool
+	Writer  io.Writer
+}
+
+func pollExportTask(ctx context.Context, client exportTaskClient, token string, tokenType larksdk.AccessTokenType, ticket string, exportToken string, diagnostics *exportTaskDiagnostics) (larksdk.ExportTaskResult, error) {
 	var lastResult larksdk.ExportTaskResult
 	for attempt := 0; attempt < exportTaskMaxAttempts; attempt++ {
 		if err := ctx.Err(); err != nil {
@@ -466,11 +476,13 @@ func pollExportTask(ctx context.Context, client exportTaskClient, token string, 
 		switch result.JobStatus {
 		case 0:
 			if result.FileToken == "" {
+				logExportTaskDiagnostics(diagnostics, result)
 				return larksdk.ExportTaskResult{}, fmt.Errorf("export task completed without file token (%s)", exportTaskFailureDetails(result))
 			}
 			return result, nil
 		case 1:
 		default:
+			logExportTaskDiagnostics(diagnostics, result)
 			return larksdk.ExportTaskResult{}, fmt.Errorf("export task failed (%s)", exportTaskFailureDetails(result))
 		}
 		if exportTaskPollInterval > 0 {
@@ -481,6 +493,7 @@ func pollExportTask(ctx context.Context, client exportTaskClient, token string, 
 			}
 		}
 	}
+	logExportTaskDiagnostics(diagnostics, lastResult)
 	return larksdk.ExportTaskResult{}, fmt.Errorf("export task not ready after %d attempts (%s)", exportTaskMaxAttempts, exportTaskFailureDetails(lastResult))
 }
 
@@ -492,4 +505,38 @@ func exportTaskFailureDetails(result larksdk.ExportTaskResult) string {
 		result.Type,
 		result.FileExtension,
 	)
+}
+
+func logExportTaskDiagnostics(diagnostics *exportTaskDiagnostics, result larksdk.ExportTaskResult) {
+	if diagnostics == nil || !diagnostics.Verbose {
+		return
+	}
+	writer := diagnostics.Writer
+	if writer == nil {
+		return
+	}
+	fields := map[string]any{
+		"file_extension": result.FileExtension,
+		"type":           result.Type,
+		"file_name":      result.FileName,
+		"file_token":     result.FileToken,
+		"file_size":      result.FileSize,
+		"job_error_msg":  result.JobErrorMsg,
+		"job_status":     result.JobStatus,
+	}
+	if result.RequestID != "" {
+		fields["request_id"] = result.RequestID
+	}
+	if result.LogID != "" {
+		fields["log_id"] = result.LogID
+	}
+	if result.URL != "" {
+		fields["url"] = result.URL
+	}
+	payload, err := json.Marshal(fields)
+	if err != nil {
+		fmt.Fprintf(writer, "export task diagnostics: %+v\n", fields)
+		return
+	}
+	fmt.Fprintf(writer, "export task diagnostics: %s\n", payload)
 }

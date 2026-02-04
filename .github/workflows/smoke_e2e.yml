@@ -1,0 +1,21 @@
+name: smoke-e2e
+
+on:
+  push:
+    branches:
+      - main
+  pull_request: {}
+
+jobs:
+  smoke-e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+      - name: Run smoke E2E
+        run: scripts/smoke_e2e.sh
