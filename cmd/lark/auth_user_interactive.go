@@ -38,10 +38,9 @@ func promptUserOAuthSelection(state *appState, account string) (userOAuthInterac
 	}
 
 	prevServices, prevScopes := previousUserOAuthSelections(state, account)
+	// Default to selecting by service. Even if the user previously selected raw scopes,
+	// the service-based flow is the primary UX we want to guide users toward.
 	defaultMode := userOAuthSelectServices
-	if len(prevServices) == 0 && len(prevScopes) > 0 {
-		defaultMode = userOAuthSelectScopes
-	}
 
 	modeIndex, canceled, err := runModeSelect(defaultMode)
 	if err != nil {
