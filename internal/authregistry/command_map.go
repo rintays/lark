@@ -35,6 +35,9 @@ var commandServiceMap = map[string][]string{
 	"msg search":            {"search-message"},
 	"messages search":       {"search-message"},
 	"users search":          {"search-user"},
+	"meetings":              {"vc-meeting"},
+	"meetings info":         {"vc-meeting"},
+	"meetings list":         {"vc-meeting"},
 
 	// Internal aliases (not currently exposed as CLI roots).
 	"im": {"im"},

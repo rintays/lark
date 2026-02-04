@@ -177,7 +177,22 @@ var Registry = map[string]ServiceDef{
 	"mail-public":  {Name: "mail public", TokenTypes: []TokenType{TokenTenant}},
 	"drive-export": {Name: "drive export", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiredUserScopes: []string{"drive:export:readonly"}, RequiresOffline: true},
 	"wiki":         {Name: "wiki", TokenTypes: []TokenType{TokenTenant, TokenUser}, RequiredUserScopes: []string{"wiki:wiki"}, UserScopes: ServiceScopeSet{Full: []string{"wiki:wiki"}, Readonly: []string{"wiki:wiki:readonly"}}, RequiresOffline: true},
-	"base":         {Name: "base", TokenTypes: []TokenType{TokenTenant}},
+	"vc-meeting": {
+		Name:       "vc meeting",
+		TokenTypes: []TokenType{TokenUser},
+		RequiredUserScopes: []string{
+			"vc:meeting:readonly",
+			"vc:meeting.meetingevent:read",
+		},
+		UserScopes: ServiceScopeSet{
+			Readonly: []string{
+				"vc:meeting:readonly",
+				"vc:meeting.meetingevent:read",
+			},
+		},
+		RequiresOffline: true,
+	},
+	"base": {Name: "base", TokenTypes: []TokenType{TokenTenant}},
 }
 
 // AllServiceNames returns all known service names in stable-sorted order.
